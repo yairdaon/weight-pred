@@ -1,40 +1,47 @@
 #!/usr/bin/Rscript
 library(rEDM)
 source( "helper.r" )
-
-my_ccm<- function(predictor,
-                  predictee,
-                  E,
-                  tp,
-                  which_obs = "all" )
+    
+predict <- function(predictor,
+                    predictee,
+                    E,
+                    tp,
+                    which_obs = "all" )
 {
-    
     file_df <- read.csv( "data/processed_data.csv", header = TRUE )
-    
+
     ## Lag the predictor 
-    df <- multi_lag_ts(file_df,
-                       predictor,
-                       E )
-
+    lagged_predictor <- multi_lag_ts(file_df,
+                                     predictor,
+                                     E )
+    
     ## Keep only legal indices
-    indices <- legal_indices(df$serial_day,
-                             E,
-                             which_obs )
-    df$serial_day <- NULL
+    predictor_indices <- predictor_legal_indices(df$serial_day,
+                                                 E,
+                                                 which_obs )
+    lagged_predictor  <- lagged_predictor[ predictor_indices, ]
 
+
+    predictee_ts      <- look_ahead(file_df,
+                                    predictee,
+                                    tp )
+    
+    predictee_indices <- predictee_legal_indices(df$serial_day,
+                                                 tp )
+    df$serial_day <- NULL
+    
     pred_cols <- names( df )
         
     df[, predictee] <- file_df[[predictee]]
 
     ## Only keep the legal indices
-    df <- df[ indices, ]
-    ## print( df[1:30, ] )
+    indices <- predictor_indices & predictee_indices
     
-    
+        
     output <- block_lnlp(df,
                          method  = "simplex",
                          columns = pred_cols,
-                         tp = tp,
+                         tp = 0,
                          target_column = predictee,
                          stats_only = TRUE,
                          first_column_time = FALSE,
@@ -48,7 +55,7 @@ my_ccm<- function(predictor,
 predictor <- "chl"
 predictee <- "chl"
 E         <- 3:7
-tp        <- 1
+tp        <- 0
 which_obs <- "all"
 
 rhos <- list()
@@ -60,7 +67,7 @@ for( e in E )
                   tp,
                   which_obs )
     
-    print( paste0( "E = ", e, " rho = ", rho ) )  
+    print( paste0( predictor, " xmap ", predictee, ". Tp = ", tp, " E = ", e, " rho = ", rho ) )  
 }
 
 ## x11()

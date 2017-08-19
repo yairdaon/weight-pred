@@ -1,5 +1,6 @@
 #!/usr/bin/Rscript
 source( "helper.r" )
+source( "plot_helper.r" )
 
 ## Load Melissa's raw data from file
 raw <- read.table("originals/data_20111121.txt",
@@ -30,14 +31,17 @@ mine$diatoms   <- transform( raw$All.Diatoms..cell.counts )
 
 ## Incoming Water
 ## mine$rain      <- transform( past_week(raw$Lindberg.Field.Rain) )
-## mine$river     <- transform( past_week(raw$Los.Penasquitos.River.Flow) )
+mine$river     <- transform( past_week(raw$Los.Penasquitos.River.Flow) )
 
 ## Nutrients
-mine$nitrate   <- transform( past_week(raw$Nitrate..surface,   raw$Nitrate..bottom) )
-mine$phosphate <- transform( past_week(raw$Phosphate..surface, raw$Phosphate..bottom) )
-mine$silicate  <- transform( past_week(raw$Silicate..surface,  raw$Silicate..surface) )
-mine$nitrite   <- transform( past_week(raw$Nitrite..surface,   raw$Nitrite..surface) )
-mine$ammonia   <- transform( past_week(raw$Ammonia..surface,   raw$Ammonia..surface) )   
+mine$nitrate   <- transform( past_week(raw$Nitrate..surface,   raw$Nitrate..bottom   ) )
+mine$phosphate <- transform( past_week(raw$Phosphate..surface, raw$Phosphate..bottom ) )
+mine$silicate  <- transform( past_week(raw$Silicate..surface,  raw$Silicate..surface ) )
+mine$nitrite   <- transform( past_week(raw$Nitrite..surface,   raw$Nitrite..surface  ) )
+mine$ammonia   <- transform( past_week(raw$Ammonia..surface,   raw$Ammonia..surface  ) )   
+## mine$nitro     <- transform( mine$nitrate + mine$nitrite + mine$ammonia ) ONLY NAs!!! 
+mine$NO_total  <- transform( mine$nitrate + mine$nitrite )
+mine$NO_spread <- transform( mine$nitrate - mine$nitrite )
 
 ## Wind
 mine$wind_v    <- transform( past_week(raw$V.wind.componet.at.10m) )
@@ -52,14 +56,18 @@ mine$salinity  <- transform( past_week(raw$Daily.surface.salinity,
                                        raw$Daily.bottom.salinity) )
 
 ## Now we show our transformed data-set, before choosing Hao's rows
-for( var in names( mine ) )
-    harry_plotter( mine[ ,var ], var ) 
+## for( var in names( mine ) )
+##     harry_plotter( mine[ ,var ], var, show=FALSE ) 
 
+write.csv( mine, file = "data/processed_data.csv", quote = FALSE )
 
 ## Hao's data.
 hao <- read.csv("originals/chl_block.csv",
                 header = TRUE )
-names( hao )
+
+## Save Hao's days to a file
+write( hao$serial_day, file = "data/hao_days.txt" )
+
 ## Ceate and save the dates that correspond to Hao's
 ## prediction set, according to Hao's indices.
 pred_rows    <- scan( "originals/pred_rows.txt" )
@@ -73,6 +81,3 @@ hao_lib     <- hao[lib_rows, ]
 lib_days    <- hao_lib$serial_day
 write( lib_days, file = "data/lib_days.txt" )
 
-## Create and save the full data set, according to Hao's indices.
-clean_data <- subset(mine, serial_day %in% hao$serial_day )
-write.csv( clean_data, file = "data/processed_data.csv", quote = FALSE )
