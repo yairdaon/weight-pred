@@ -1,10 +1,5 @@
 library( zoo )
 
-hold <- function(k=0){
-    message("Press Return To Continue")
-    invisible(readLines("stdin", n=k))
-}
-
 past_week <- function( ts1, ts2 = NA )
 {
     mean_1 <- rollapply(ts1,
@@ -61,32 +56,14 @@ transform <- function( ts, func = "" )
     return( ts )
 }
 
-harry_plotter <- function(x, tit, k=0 )
-{
-    tit <- paste( "Transformed ", tit, " data" )
-    x <- na.omit( x )
-    x11()
-    hist(x,
-         main = tit,
-         breaks = 20,
-         probability=TRUE,
-         xlim = c(-4, 4 ) )
-    
-    lines( density(x), col="red" )
-    z <- seq(-4,4, length = 1000)
-    lines(z,
-          dnorm(z, mean=0, sd = 1 ),
-          col = "blue" )
-    if( k == 0 )
-        hold()
-    else
-        hold(k)
-    
-}
 
 ## Takes (1, 3, 4, 8, 4, 3, 9) to (NA, 1, 3, 4, 8, 4, 3) 
-lag_ts <- function( ts ) {
-    return( c( NA, ts[1:length(ts)-1] ) )
+lag_ts <- function( ts, t = 1 ) {
+    if ( t > 0 ) 
+        return( c( NA * 1:t, ts[1:(length(ts)-t)] ) )
+    else if (t < 0)
+        return( c( ts[(1-t):length(ts)], NA * 1:(-t)  ) )
+    return( ts )
 }
 
 
@@ -155,4 +132,41 @@ legal_indices <- function(serial_day,
         return( indices3 )
     else
         return( indices0 )
+}
+
+## Returns a time series aligned with the original data frame that has
+## a value 6,7 or 8 days ahead (if tp == 2, whichever exists and
+## averaged in the unlikely case 6 and 8 exist) or "3.5" days ahead (if
+## tp == 1, using either 3 or 4 days ahead, whichever exists).
+look_ahead <- function(df,
+                       predictee,
+                       tp = 1)
+{
+    if( tp == 1 ) {
+        width <- 2
+        jump  <- 3 
+    } else if( tp == 2 ){
+        width <- 3
+        jump  <- 6
+    } 
+
+    ts  <- df[ ,predictee]
+    ts  <- lag_ts( ts, -jump )
+    look_ahead <- rollapply(ts,
+                            width = width,
+                            align = 'left',
+                            FUN = mean,
+                            fill = NA,
+                            na.rm = TRUE )
+
+    return( look_ahead )
+}
+
+## Take data frame and return only the rows that correspond to the
+## serial_days in Hao's dataset.
+restrict_day <- function(df, file_name="data/hao_days.txt" )
+{
+    restriction   <- scan(file_name) 
+    restricted_df <- subset(df, serial_day %in% restriction )
+    return( restricted_df )
 }

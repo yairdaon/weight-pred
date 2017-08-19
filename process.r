@@ -56,8 +56,8 @@ mine$salinity  <- transform( past_week(raw$Daily.surface.salinity,
                                        raw$Daily.bottom.salinity) )
 
 ## Now we show our transformed data-set, before choosing Hao's rows
-## for( var in names( mine ) )
-##     harry_plotter( mine[ ,var ], var, show=FALSE ) 
+for( var in names( mine ) )
+    harry_plotter( mine[ ,var ], var, show=FALSE ) 
 
 write.csv( mine, file = "data/processed_data.csv", quote = FALSE )
 
