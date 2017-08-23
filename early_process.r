@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 source( "helper.r" )
-source( "plot_helper.r" )
+
 
 ## Load Melissa's raw data from file
 raw <- read.table("originals/data_20111121.txt",
@@ -23,7 +23,9 @@ serial_day <- as.numeric(date)/86400 + 719529
 mine           <- data.frame( serial_day )
 
 ## Organisms
-mine$chl       <- transform( raw$Chlorophyll..surface )
+mine$chl       <- transform(               raw$Chlorophyll..surface   )
+mine$chl_week  <- chl_week_modifier( mine$chl )
+mine$chl_half  <- chl_half_modifier( mine$chl )
 mine$dino      <- transform( raw$All.Dinoflagellates..cell.counts ) 
 mine$diatoms   <- transform( raw$All.Diatoms..cell.counts )
 
@@ -57,9 +59,10 @@ mine$salinity  <- transform( past_week(raw$Daily.surface.salinity,
 
 ## Now we show our transformed data-set, before choosing Hao's rows
 for( var in names( mine ) )
-    harry_plotter( mine[ ,var ], var, show=FALSE ) 
+    if( FALSE ) ## PlotOrNot?
+        harry_plotter( mine[ ,var ], var )
 
-write.csv( mine, file = "data/processed_data.csv", quote = FALSE )
+write.csv( mine, file = "data/processed_daily_data.csv", quote = FALSE )
 
 ## Hao's data.
 hao <- read.csv("originals/chl_block.csv",
@@ -80,4 +83,3 @@ lib_rows    <- scan( "originals/lib_rows.txt" )
 hao_lib     <- hao[lib_rows, ]
 lib_days    <- hao_lib$serial_day
 write( lib_days, file = "data/lib_days.txt" )
-

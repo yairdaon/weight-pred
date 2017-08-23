@@ -2,50 +2,50 @@
 library(rEDM)
 source( "helper.r" )
     
-predict <- function(predictor,
-                    predictee,
+predict <- function(past, ## What we use for prediction 
+                    future, ## The thing we try to predict
                     E,
                     tp,
                     which_obs = "all" )
 {
-    file_df <- read.csv( "data/processed_data.csv", header = TRUE )
-
-    ## Lag the predictor 
-    lagged_predictor <- multi_lag_ts(file_df,
-                                     predictor,
-                                     E )
+    ## Lag it... 
+    if( past == "chl" )
+        past <- multi_lag_chl( E )
+    else
+        past <- multi_lag_var(past,
+                              E )
     
-    ## Keep only legal indices
-    predictor_indices <- predictor_legal_indices(df$serial_day,
-                                                 E,
-                                                 which_obs )
-    lagged_predictor  <- lagged_predictor[ predictor_indices, ]
+    ## ... get the column names for later use ...
+    pred_cols <- names( past )
+    pred_cols <- pred_cols[-1]
 
+    ## ## ... and remove all illegal indices.
+                 ## indices <- legal_indices(restricted_df$serial_day,
+    ##                          E,
+    ##                          which_obs )
+    ## lagged_predictor <- lagged_predictor[ indices, ]
+    
+    ## Predictee:
+    
+    ## Get its forwarded data frame
 
-    predictee_ts      <- look_ahead(file_df,
-                                    predictee,
-                                    tp )
+    if( future == "chl" && tp %% 2 == 0 )
+        future <- half_week_steps( week_chl, tp )
     
-    predictee_indices <- predictee_legal_indices(df$serial_day,
-                                                 tp )
-    df$serial_day <- NULL
     
-    pred_cols <- names( df )
-        
-    df[, predictee] <- file_df[[predictee]]
-
-    ## Only keep the legal indices
-    indices <- predictor_indices & predictee_indices
     
-        
+    df <- merge(x = past, y = future, by = "serial_day", all.x = TRUE)
+    df <- na.omit( df ) 
+    ## df <- restrict( df )
+    print( df[1:12, ] )
     output <- block_lnlp(df,
                          method  = "simplex",
                          columns = pred_cols,
                          tp = 0,
-                         target_column = predictee,
+                         target_column = 1,
                          stats_only = TRUE,
-                         first_column_time = FALSE,
-                         silent = TRUE)
+                         first_column_time = TRUE,
+                         silent = FALSE)
 
     
     return( output$rho )
@@ -54,18 +54,18 @@ predict <- function(predictor,
 
 predictor <- "chl"
 predictee <- "chl"
-E         <- 3:7
+E         <- 4
 tp        <- 0
 which_obs <- "all"
 
 rhos <- list()
 for( e in E )
 {
-    rho <- my_ccm(predictor,
-                  predictee,
-                  e,
-                  tp,
-                  which_obs )
+    rho <- predict(predictor,
+                   predictee,
+                   e,
+                   tp,
+                   which_obs )
     
     print( paste0( predictor, " xmap ", predictee, ". Tp = ", tp, " E = ", e, " rho = ", rho ) )  
 }

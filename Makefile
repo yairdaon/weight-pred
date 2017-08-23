@@ -1,5 +1,5 @@
 run:
-	./process.r
+	./early_process.r
 	./lag_data.r
 
 clean:
