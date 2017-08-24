@@ -15,15 +15,15 @@ raw <- read.table("originals/data_20111121.txt",
 ## Fix the date and serial day issues according to some (potentially
 ## wrong) recipe found online. This, however, seems to agree with
 ## Hao's data.
-date       <- as.POSIXlt(as.Date(paste(raw$Year, raw$Month, raw$Day, sep="-"))) 
-serial_day <- as.numeric(date)/86400 + 719529
+dates      <- as.POSIXlt(as.Date(paste(raw$Year, raw$Month, raw$Day, sep="-"))) 
+serial_day <- as.numeric(dates)/86400 + 719529
 
 ## Create a raw data frame that will contain the variables I want to
 ## consider.  
-mine           <- data.frame( serial_day )
+mine           <- data.frame( dates, serial_day )
 
 ## Organisms
-mine$chl       <- transform(               raw$Chlorophyll..surface   )
+mine$chl       <- transform( raw$Chlorophyll..surface )
 mine$chl_week  <- chl_week_modifier( mine$chl )
 mine$chl_half  <- chl_half_modifier( mine$chl )
 mine$dino      <- transform( raw$All.Dinoflagellates..cell.counts ) 

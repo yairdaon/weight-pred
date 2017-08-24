@@ -9,40 +9,35 @@ predict <- function(past, ## What we use for prediction
                     which_obs = "all" )
 {
     ## Lag it... 
-    if( past == "chl" )
-        past <- multi_lag_chl( E )
-    else
-        past <- multi_lag_var(past,
-                              E )
+    past <- multi_lag_var(past, E )
     
     ## ... get the column names for later use ...
     pred_cols <- names( past )
     pred_cols <- pred_cols[-1]
-
-    ## ## ... and remove all illegal indices.
-                 ## indices <- legal_indices(restricted_df$serial_day,
-    ##                          E,
-    ##                          which_obs )
-    ## lagged_predictor <- lagged_predictor[ indices, ]
-    
-    ## Predictee:
     
     ## Get its forwarded data frame
+    future <- look_ahead_var( future, tp )
 
-    if( future == "chl" && tp %% 2 == 0 )
-        future <- half_week_steps( week_chl, tp )
-    
-    
+    target <- colnames( future )
+    target <- target[-1]
     
     df <- merge(x = past, y = future, by = "serial_day", all.x = TRUE)
-    df <- na.omit( df ) 
-    ## df <- restrict( df )
-    print( df[1:12, ] )
+
+    ## Cleaning and restriction procedures
+    ## df <- na.omit( df ) 
+    df <- restrict( df )
+
+    ## Printers
+    ## print( df[1:12, ] )
+    print( names( df ) )
+    print( pred_cols )
+    print( target )
+    print( length( df$serial_day) )
     output <- block_lnlp(df,
                          method  = "simplex",
                          columns = pred_cols,
                          tp = 0,
-                         target_column = 1,
+                         target_column = target,
                          stats_only = TRUE,
                          first_column_time = TRUE,
                          silent = FALSE)
@@ -52,24 +47,21 @@ predict <- function(past, ## What we use for prediction
            
 }
 
-predictor <- "chl"
-predictee <- "chl"
+predictor <- "nitrate"
+predictee <- "chl"###"nitrate"
 E         <- 4
-tp        <- 0
+tp        <- -2
 which_obs <- "all"
-
-rhos <- list()
-for( e in E )
+for( E in 5 )
 {
     rho <- predict(predictor,
                    predictee,
-                   e,
+                   E,
                    tp,
                    which_obs )
     
-    print( paste0( predictor, " xmap ", predictee, ". Tp = ", tp, " E = ", e, " rho = ", rho ) )  
+    print( paste0( predictor, " xmap ", predictee, ". Tp = ", tp, " E = ", E, " rho = ", rho ) )  
 }
-
 ## x11()
 ## plot(E,
 ##      rhos,

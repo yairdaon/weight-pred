@@ -5,22 +5,46 @@ source( "plotting.r" )
 ## Functions I don't feel OK with and may need revision. Empty, hopefully
 ##########################################################################
 
-look_ahead_chl <- function( tp )
+## Returns a data frame with lags of time series ts, named var_0,
+## var_1 etc. lagged E-1 times.
+multi_lag_var <- function( var, E )
 {
-    df <- read.csv( "data/processed_daily_data.csv", header = TRUE )
-    chl_df <- data.frame( serial_day = df$serial_day )
+    if( var == "chl" )
+        return( multi_lag_chl( E ) )
 
-    if( tp %% 2 == 0 )
-        ts <- df$chl_week
-    else
-        ts <- df$chl_half
+    df <- read.csv( "data/processed_daily_data.csv", header = TRUE )
+    lagged <- data.frame( serial_day = df$serial_day )
+
+    ts <- df[ ,var ]
     
-    chl_df[paste0("chl_p", tp )] <- half_week_steps( ts, tp )
     
-    return( chl_df )
+
+    ## Predictor at time t-E. Note we take -e (negative!) so we have
+    ## the interpretation of a lag of e half weeks, see doc for
+    ## methods half_week_steps and lag_days.
+    for( e in 0:(E-1) )        
+        lagged[paste0(var, "_", e )] <- half_week_steps( ts, -e )
+    
+    return( lagged )
 }
 
+look_ahead_var <- function( var, tp )
+{
+    df     <- read.csv( "data/processed_daily_data.csv", header = TRUE )
+    var_df <- data.frame( serial_day = df$serial_day )
 
+    if ( var == "chl" )
+        if( tp %% 2 == 0 )
+            ts <- df$chl_week
+        else
+            ts <- df$chl_half
+    else
+        ts <- df[ ,var ]
+    
+    var_df[paste0(var, "_p", tp )] <- half_week_steps( ts, tp )
+    
+    return( var_df )
+}
 
 ##########################################################################
 ## Functions I feel pretty OK with and don't need revision.
@@ -50,7 +74,7 @@ multi_lag_chl <- function( E )
     ## Predictor at time t-E. Note we take -e (negative!) so we have
     ## the interpretation of a lag of e half weeks, see doc for
     ## methods half_week_steps and lag_days.
-    for( e in E )
+    for( e in 1:(E-1) )
     {
         ## In case of an integer number of weeks' lag
         if( e %% 2 == 0 )
@@ -89,25 +113,6 @@ chl_half_modifier <- function( chl )
                   fill = NA,
                   na.rm = TRUE )   
     )
-
-
-## Returns a data frame with lags of time series ts, named var_0,
-## var_1 etc. lagged E-1 times.
-multi_lag_var <- function( var, E )
-{
-    df <- read.csv( "data/processed_daily_data.csv", header = TRUE )
-    lagged <- data.frame( serial_day = df$serial_day )
-    lagged[paste0(var, "_0")] <- df[ ,var ] 
-    
-
-    ## Predictor at time t-E. Note we take -e (negative!) so we have
-    ## the interpretation of a lag of e half weeks, see doc for
-    ## methods half_week_steps and lag_days.
-    for( e in 1:E )        
-        lagged[paste0(var, "_", e )] <- half_week_steps( ts, -e )
-    
-    return( lagged )
-}
 
 ## If tp is even, takes tp/2 week steps. If tp==1 takes a 4 day step
 ## into the future, if tp==3 takes 11 steps etc. If tp==-1 takes -3
