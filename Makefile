@@ -1,6 +1,6 @@
 run:
-	./early_process.r
-	./lag_data.r
+	./preprocess.r
+	./analysis.r
 
 clean:
 	rm -rvf *.csv  *~ *.txt data/*
