@@ -6,7 +6,7 @@ source( "helper.r" )
 raw <- read.table("originals/data_20111121.txt",
                  header = TRUE,
                  sep = "\t",
-                 ## nrows = 100,
+                 ## nrows = 150,
                  na.strings ="NaN" )
 
 ## ## Print the variables' names, if you'd like to.
@@ -99,35 +99,39 @@ write( lib_days, file = "data/lib_days.txt" )
 ## measurements and when we don't have these, we stick a NA row, to
 ## denote that the block ends.
 
-## A boolean vector with TRUE on days we have chlorophyll data
-indices <- !is.na(df$chl)
-
-## A vector of MATLAB serial days where we have chlorophyll data
-chl_days <- df[ !is.na(df$chl), ]$serial_day
+## Throw away all days where chlorophyll was not measured.
+df  <- df[ !is.na(df$chl), ]
 
 ## Day differences between consecutive chlorophyll observations.
-step <- c( 3, diff( chl_days ) )
+step <- c( 3, diff( df$serial_day ) )
 
-## The indices where the time difference is NOT 3 or our days
-indices <- unique( c( which( step < 3 ), which( step > 4 ) ) )
+## The indices where the time difference is NOT 3 or 4 days, sorted.
+blocks <- sort(unique( c( which( step < 3 ), which( step > 4 ) ) ) )
 
-## days that should be an NA row, since the day after, there is a
-## measurement that is not within 3,4 days of previous measurement
-NA_row_days <- chl_days[indices] - 1
+## So we include data to the end of the original data frame
+blocks <- c( blocks, nrow(df)+1 )
 
-## Restrict the dataframe to the rows we need
-df <- df[ df$serial_day %in% c( chl_days, NA_row_days ), ]
-df$step <- c( 3, diff( df$serial_day ) )
+## The NA row we separate with
+filler <- rep( NA, nrow(df) )
 
-## Make sure we insert those NA rows!!!
-df[ df$serial_day %in% NA_row_days, ] <- rep( NA, ncol(df) )
+## The augmented data frame, with NA between observations which are
+## not 3 or 4 days apart.
+aug <- df[1:(blocks[1]-1), ]
 
+for( r in 1:(length(blocks)-1) )
 
-write.csv( df, file = "data/univariate_data.csv",
+    ## Augment the data frame with a filler row, then the next block.
+    aug <- rbind( aug, filler, df[ blocks[r]:(blocks[r+1]-1) , ] )
+
+## Make sure we don't throw away ANY data
+stopifnot( all(
+    df$serial_day == na.omit(aug$serial_day) 
+) )
+
+write.csv(aug,
+          file = "data/univariate_data.csv",
           quote = FALSE,
           row.names = FALSE )
-
-
 
 
 ##########################################################################
