@@ -65,8 +65,9 @@ pred <- scan( "originals/pred_rows.txt" )
 lib  <- c( min(lib), max(lib) ) 
 pred <- c( min(pred), max(pred) )
 
-all_pred_obs  <- df$chl[pred[1]:pred[2]]
+all_pred_obs  <- df$chl_p1wk[pred[1]:pred[2]]
 all_pred_time <- pred[1]:pred[2]
+T             <- all_pred_time[1] - 1
 
 vars <- c("nitrate_m1wk",
           "nitrate_m2wk",
@@ -84,7 +85,7 @@ vars <- c("nitrate_m1wk",
 best <- block_lnlp(df,
                    lib = lib,
                    pred = pred,
-                   method = "s-map",
+                   method = "simplex", ##"s-map",
                    tp = 0, # Cuz the time shift is alread in the
                                         # target
                    columns = c("chl",
@@ -92,18 +93,20 @@ best <- block_lnlp(df,
                                "AvgDens_1wk_m1wk",
                                "silicate"),
                    target_column = "chl_p1wk",
-                   theta = 1.8,
+                   #theta = 1.8,
                    short_output = TRUE,
                    stats_only = FALSE )
 
 
 best_pred       <- numeric(length(all_pred_time))
-time            <- best[[1]]$model_output$time
+time            <- best[[1]]$model_output$time - T
 best_pred[time] <- best[[1]]$model_output$pred
      
 
-cum_weight_pred <- numeric(length(all_pred_time))
-cum_weight      <- numeric(length(all_pred_time))
+cum_weight_pred     <- numeric(length(all_pred_time))
+cum_weight          <- numeric(length(all_pred_time))
+cum_exp_weight_pred <- numeric(length(all_pred_time))
+cum_exp_weight      <- numeric(length(all_pred_time))
 
 ## Should have |vars|/4!4! = 8!/4!4! = ... = 70 combinations
 combinations <- combn( vars, 4 )
@@ -111,81 +114,59 @@ combinations <- combn( vars, 4 )
 for( i in 1:dim(combinations)[2] )
 {
     cols <- combinations[,i]
-    ## print( cols )
 
     output <- block_lnlp(df,
                          lib = lib,
                          pred = pred,
-                         method = "s-map",
+                         method = "simplex", ##"s-map",
                          tp = 0, # Cuz the time shift is alread in the
                                  # target
                          columns = cols,
                          target_column = "chl_p1wk",
-                         theta = 1.5,
+                         ##theta = 1.5,
                          short_output = TRUE,
                          stats_only = FALSE )
-    
-
-    ## print( paste0("stats:", names(output[[1]]$stats)) )
-    ## print( paste0("model output:", names(output[[1]]$model_output)) )
-    ## print( paste0("embedding:", names(output[[1]]$embedding)) )
-    ## print( paste0("params:",    names(output[[1]]$params)) )
-    
-    weight <- exp(-output[[1]]$model_output$pred_var)
-    weight <- 1 / output[[1]]$model_output$pred_var
-    weight[ is.nan(weight)  ] <- 0
-
+        
     pr <- output[[1]]$model_output$pred
     pr[ is.nan(pr)  ] <- 0
 
-    time <- output[[1]]$model_output$time
-    
-    cum_weight_pred[time] <- cum_weight_pred + weight * pr 
+    time <- output[[1]]$model_output$time - T
 
-    cum_weight[time] <- cum_weight + weight
+    {
+        ## print( any( output[[1]]$model_output$pred_var == 0 ) )
+        weight     <- 1 / (output[[1]]$model_output$pred_var + 0.001)
+        weight[ is.na(weight)  ] <- 0
+        
+        cum_weight_pred[time] <- cum_weight_pred[time] + weight * pr 
+
+        cum_weight[time] <- cum_weight[time] + weight
+    }
+
+    {
+        exp_weight <- exp(-output[[1]]$model_output$pred_var)
+        exp_weight[ is.na(exp_weight)  ] <- 0
+        
+        cum_exp_weight_pred[time] <- cum_exp_weight_pred[time] + exp_weight * pr 
+        
+        cum_exp_weight[time] <- cum_exp_weight[time] + exp_weight
+    }
 }
 
 prediction <- cum_weight_pred / cum_weight
-x11()
-plot(all_pred_time,
-     all_pred_obs,
-     type = "l",
-     col = "black")
-lines(prediction, col = "red" )
-lines(best_pred, col = "blue" )
-hold(1)
-
-best_rho <- 
-warnings()
-## lib <- scan( "data/lib_days.txt" )
-## lib <- which( df$serial_day %in% lib )
-## print( lib )
-
-## pred <- scan( "data/pred_days.txt" )
-## pred <- which( df$serial_day %in% pred )
-## print( pred )
-
-
-
-
+exp_prediction <- cum_exp_weight_pred / cum_exp_weight
 
 ## x11()
-## plot(E,
-##      rhos,
+## plot(all_pred_time,
+##      all_pred_obs,
 ##      type = "l",
-##      col = "blue",
-##      main = paste0("Prediction of ", predictee, " using ", predictor, " data using ", numLags, " lags") )
+##      col = "black")
+## lines(prediction, col = "red" )
+## lines(exp_prediction, col = "green" )
+## lines(best_pred, col = "blue" )
 ## hold(1)
 
-## perm <- order(rho)
-## print( paste0("Lags = ",
-##               E[length(E)],
-##               ", max rho = ",
-##               rho[perm[length(rho)]],
-##               ", E = ",
-##               perm[length(rho)],
-##               ", 2nd rho = ",
-##               rho[perm[length(rho)-1]],
-##               ", E = ",
-##               perm[length(rho)-1] )
-##       )
+print( paste0( "Out of sample rho using the best 4D model: "         ,     cor(best_pred,     all_pred_obs) ) )
+print( paste0( "Out of sample rho using the weighted 4D predictors: ",     cor(prediction,    all_pred_obs) ) )
+print( paste0( "Out of sample rho using the exp weighted 4D predictors: ", cor(exp_prediction,all_pred_obs) ) )
+
+## warnings()
