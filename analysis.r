@@ -68,14 +68,25 @@ pred <- c( min(pred), max(pred) )
 all_pred_obs  <- df$chl_p1wk[pred[1]:pred[2]]
 all_pred_time <- pred[1]:pred[2]
 T             <- all_pred_time[1] - 1
+n             <- length( all_pred_time )
 
-vars <- c("nitrate_m1wk",
+vars <- c("nitrate",
+          "nitrate_m1wk",
           "nitrate_m2wk",
-          "silicate_m1wk",
           "silicate",
+          "silicate_m1wk",
+          "silicate_m2wk",
+          "nitrite",
           "nitrite_m1wk",
+          "nitrite_m2wk",
+          "AvgTemp_1wk",
           "AvgTemp_1wk_m1wk",
+          "AvgTemp_1wk_m2wk",
+          "AvgDens_1wk",
           "AvgDens_1wk_m1wk",
+          "AvgDens_1wk_m2wk",
+          "U_WIND",
+          "U_WIND_m1wk",
           "U_WIND_m2wk",
           "chl",
           "chl_m1wk",
@@ -98,15 +109,15 @@ best <- block_lnlp(df,
                    stats_only = FALSE )
 
 
-best_pred       <- numeric(length(all_pred_time))
+best_pred       <- numeric(n)
 time            <- best[[1]]$model_output$time - T
 best_pred[time] <- best[[1]]$model_output$pred
-     
 
-cum_weight_pred     <- numeric(length(all_pred_time))
-cum_weight          <- numeric(length(all_pred_time))
-cum_exp_weight_pred <- numeric(length(all_pred_time))
-cum_exp_weight      <- numeric(length(all_pred_time))
+
+min_vars   <- rep( Inf, n )
+var_pred   <- rep( NA,  n )
+cum_pred   <- numeric(n)
+cum_weight <- numeric(n)
 
 ## Should have |vars|/4!4! = 8!/4!4! = ... = 70 combinations
 combinations <- combn( vars, 4 )
@@ -126,34 +137,36 @@ for( i in 1:dim(combinations)[2] )
                          ##theta = 1.5,
                          short_output = TRUE,
                          stats_only = FALSE )
-        
-    pr <- output[[1]]$model_output$pred
-    pr[ is.nan(pr)  ] <- 0
 
     time <- output[[1]]$model_output$time - T
 
-    {
-        ## print( any( output[[1]]$model_output$pred_var == 0 ) )
-        weight     <- 1 / (output[[1]]$model_output$pred_var + 0.001)
-        weight[ is.na(weight)  ] <- 0
-        
-        cum_weight_pred[time] <- cum_weight_pred[time] + weight * pr 
+    ## The model's predictions
+    pr <- numeric(n)
+    pr[time] <- output[[1]]$model_output$pred
 
-        cum_weight[time] <- cum_weight[time] + weight
-    }
+    ## The prediction's associated variances
+    vars <- rep( Inf, n )
+    vars[time] <- output[[1]]$model_output$pred_var
 
-    {
-        exp_weight <- exp(-output[[1]]$model_output$pred_var)
-        exp_weight[ is.na(exp_weight)  ] <- 0
-        
-        cum_exp_weight_pred[time] <- cum_exp_weight_pred[time] + exp_weight * pr 
-        
-        cum_exp_weight[time] <- cum_exp_weight[time] + exp_weight
-    }
+    ## Sanity check
+    stopifnot( all(
+    (vars==Inf) == (pr==0)
+    ) )
+
+    ## Choose new predictions if they are less uncertain than previous ones
+    min_ind           <- which( vars < min_vars )
+    min_vars[min_ind] <- vars[min_ind]
+    var_pred[min_ind] <- pr[min_ind]
+
+    ## Weigh new predictions compare to previous ones
+    weight     <- ceiling(exp(-vars/1000))
+    cum_pred   <- cum_pred + weight * pr 
+    cum_weight <- cum_weight + weight
+    
 }
 
-prediction <- cum_weight_pred / cum_weight
-exp_prediction <- cum_exp_weight_pred / cum_exp_weight
+cum_pred <- cum_pred / cum_weight
+
 
 ## x11()
 ## plot(all_pred_time,
@@ -165,8 +178,8 @@ exp_prediction <- cum_exp_weight_pred / cum_exp_weight
 ## lines(best_pred, col = "blue" )
 ## hold(1)
 
-print( paste0( "Out of sample rho using the best 4D model: "         ,     cor(best_pred,     all_pred_obs) ) )
-print( paste0( "Out of sample rho using the weighted 4D predictors: ",     cor(prediction,    all_pred_obs) ) )
-print( paste0( "Out of sample rho using the exp weighted 4D predictors: ", cor(exp_prediction,all_pred_obs) ) )
+print( paste0( "Out of sample rho using best 4D model: "         ,         cor(best_pred, all_pred_obs, use = "complete.obs") ) )
+print( paste0( "Out of sample rho using weighted 4D predictors: ",         cor(cum_pred,  all_pred_obs, use = "complete.obs") ) )
+print( paste0( "Out of sample rho using minimal variance 4D predictors: ", cor(var_pred,  all_pred_obs, use = "complete.obs") ) )
 
-## warnings()
+warnings()
