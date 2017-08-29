@@ -106,13 +106,19 @@ df  <- df[ !is.na(df$chl), ]
 step <- c( 3, diff( df$serial_day ) )
 
 ## The indices where the time difference is NOT 3 or 4 days, sorted.
+## These are the breakpoints where we add a NA row.
 blocks <- sort(unique( c( which( step < 3 ), which( step > 4 ) ) ) )
 
-## So we include data to the end of the original data frame
+## So we include data to the end of the original data frame. Just a
+## programming shortcut.
 blocks <- c( blocks, nrow(df)+1 )
 
-## The NA row we separate with
+## The NA block we separate with.
 filler <- rep( NA, nrow(df) )
+## filler <- matrix(data=NA,
+##                  nrow=nrow(df),
+##                  ncol=4 )
+
 
 ## The augmented data frame, with NA between observations which are
 ## not 3 or 4 days apart.
@@ -123,9 +129,19 @@ for( r in 1:(length(blocks)-1) )
     ## Augment the data frame with a filler row, then the next block.
     aug <- rbind( aug, filler, df[ blocks[r]:(blocks[r+1]-1) , ] )
 
+
+## Tests. Work when we fill with only one NA row.!!!
+
 ## Make sure we don't throw away ANY data
 stopifnot( all(
     df$serial_day == na.omit(aug$serial_day) 
+) )
+
+## Make sure the jump before and after a NA line is not 3 or 4.
+rows  <- which(is.na(aug$serial_day))
+diffs <- aug$serial_day[rows+1] - aug$serial_day[rows-1]
+stopifnot( all(
+    (diffs > 4) | (diffs < 3) 
 ) )
 
 write.csv(aug,

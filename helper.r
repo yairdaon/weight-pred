@@ -201,7 +201,9 @@ past_week <- function( ts1, ts2 = NA )
     return( mean_1 )
 }
 
-transform <- function( ts, func = "" )
+transform <- function(ts,
+                      func = "",
+                      robust = TRUE )
 {
     minimum <- min(ts, na.rm = TRUE)
     
@@ -225,14 +227,15 @@ transform <- function( ts, func = "" )
         ts <- sqrt(ts)
     
 
-    ## Mad is media absolte deviation, scaled so that it is a
-    ## consistent estimator of the standard deviation
-    ts <- ( ts - median(ts, na.rm = TRUE) ) / mad ( ts, na.rm = TRUE )
-
-    ## If you really really want to use mean and std-dev...
-    ## ts <- ( ts - mean(ts, na.rm = TRUE) ) / sd( ts, na.rm = TRUE )
-    
-    return( ts )
+    if( robust )
+        ## Mad is media absolte deviation, scaled so that it is a
+        ## consistent estimator of the standard deviation
+        ts <- ( ts - median(ts, na.rm = TRUE) ) / mad ( ts, na.rm = TRUE )
+    else
+        ## If you really really want to use mean and std-dev...
+        ts <- ( ts - mean(ts, na.rm = TRUE) ) / sd( ts, na.rm = TRUE )
+        
+        return( ts )
 }
 
 
