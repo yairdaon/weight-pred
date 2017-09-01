@@ -78,11 +78,7 @@ same_prediction <- function(lib_df,
     print( paste0( "OOS rho using best 4D model : ", output$rho ) )
 }
         
-normalize <- function( ts, m, s )
-    return( (ts - m)/s )
-
-    
-## Prepare the data.
+## Prepare the data: mostly uninteresting code
 load( "originals/chl_block_full.Rdata" )
 chl_mean <- mean( orig_block$chlA,        na.rm = TRUE )
 chl_sd   <- sd(   orig_block$chlA,        na.rm = TRUE )
@@ -90,7 +86,6 @@ sil_mean <- mean( orig_block$silicate,    na.rm = TRUE )
 sil_sd   <- sd(   orig_block$silicate,    na.rm = TRUE )
 den_mean <- mean( orig_block$AvgDens_1wk, na.rm = TRUE )
 den_sd   <- sd(   orig_block$AvgDens_1wk, na.rm = TRUE )
-
 df <- data.frame(
     serial_day    =  orig_block$serial_day,
     chl_p1wk      = (orig_block$chlA_.1wk     - chl_mean) / chl_sd, 
@@ -101,6 +96,8 @@ df <- data.frame(
 )
 row.names( df ) <- 1:nrow(df)
 
+## The 7.73 threshold that defines a bloom. Not really 7.73 cuz data
+## is now normalized.
 threshold  <- quantile( df$chl, 0.95, na.rm = TRUE )
 
 lib_start  <- date2serial( "1983-01-01" )
@@ -149,6 +146,16 @@ same_prediction(bloom_lib,
                 lib_start,
                 lib_end,
                 pred_start,
+                pred_end,
+                method,
+                theta)
+
+## LOOCV
+same_prediction(full_lib,
+                full_pred,
+                lib_start,
+                pred_end,
+                lib_start,
                 pred_end,
                 method,
                 theta)

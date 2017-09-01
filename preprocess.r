@@ -1,66 +1,68 @@
 #!/usr/bin/Rscript
 source( "helper.r" )
 
+cent <- function( x )
+    return( mean( x, na.rm = TRUE ) )
+scal <- function( x )
+    return( sd(x, na.rm = TRUE ) )
 
 ## Load Melissa's raw data from file
-raw <- read.table("originals/data_20111121.txt",
-                 header = TRUE,
-                 sep = "\t",
-                 ## nrows = 150,
-                 na.strings ="NaN" )
+## Prepare the data.
+load( "originals/chl_block_full.Rdata" )
 
 ## ## Print the variables' names, if you'd like to.
-## names( raw )
+## print( names( orig_block ) )
 
-## Fix the date and serial day issues according to some (potentially
-## wrong) recipe found online. This, however, seems to agree with
-## Hao's data.
-dates      <- as.POSIXlt(as.Date(paste(raw$Year, raw$Month, raw$Day, sep="-"))) 
-serial_day <- as.numeric(dates)/86400 + 719529
+## Create a data frame that will contain the causeal variables we want
+## to consider.
+df           <- data.frame( serial_day = orig_block$serial_day )
 
-## Create a raw data frame that will contain the variables I want to
-## consider.  
-df           <- data.frame( dates, serial_day )
+chl_c <- cent( orig_block$chlA )
+chl_s <- scal(   orig_block$chlA )
+df$chl_p1wk <- (orig_block$chlA_.1wk - chl_c ) / chl_s
+df$chl      <- (orig_block$chlA      - chl_c ) / chl_s
+df$chl_1wk  <- (orig_block$chlA_1wk  - chl_c ) / chl_s
+df$chl_2wk  <- (orig_block$chlA_2wk  - chl_c ) / chl_s
 
-## Organisms
-df$chl       <- transform( raw$Chlorophyll..surface )
-df$chl_p2    <- chl_week_modifier( df$chl )
-df$chl_p1    <- chl_half_modifier( df$chl )
-df$dino      <- transform( raw$All.Dinoflagellates..cell.counts ) 
-df$diatoms   <- transform( raw$All.Diatoms..cell.counts )
+silicate_c <- cent( orig_block$silicate )
+silicate_s <- scal(   orig_block$silicate )
+df$silicate     <- (orig_block$silicate     - silicate_c ) / silicate_s
+df$silicate_1wk <- (orig_block$silicate_1wk - silicate_c ) / silicate_s
+df$silicate_2wk <- (orig_block$silicate_2wk - silicate_c ) / silicate_s
 
-## Environmental variables:
+nitrate_c <- cent( orig_block$nitrate )
+nitrate_s <- scal(   orig_block$nitrate )
+df$nitrate     <- (orig_block$nitrate      - nitrate_c ) / nitrate_s
+df$nitrate_1wk <- (orig_block$nitrate_1wk  - nitrate_c ) / nitrate_s
+df$nitrate_2wk <- (orig_block$nitrate_2wk  - nitrate_c ) / nitrate_s
 
-## Incoming Water
-## df$rain      <- transform( past_week(raw$Lindberg.Field.Rain) )
-df$river     <- transform( past_week(raw$Los.Penasquitos.River.Flow) )
+nitrite_c <- cent( orig_block$nitrite )
+nitrite_s <- scal(   orig_block$nitrite )
+df$nitrite     <- (orig_block$nitrite      - nitrite_c ) / nitrite_s
+df$nitrite_1wk <- (orig_block$nitrite_1wk  - nitrite_c ) / nitrite_s
+df$nitrite_2wk <- (orig_block$nitrite_2wk  - nitrite_c ) / nitrite_s
 
-## Nutrients
-df$nitrate   <- transform( past_week(raw$Nitrate..surface,   raw$Nitrate..bottom   ) )
-df$phosphate <- transform( past_week(raw$Phosphate..surface, raw$Phosphate..bottom ) )
-df$silicate  <- transform( past_week(raw$Silicate..surface,  raw$Silicate..surface ) )
-df$nitrite   <- transform( past_week(raw$Nitrite..surface,   raw$Nitrite..surface  ) )
-df$ammonia   <- transform( past_week(raw$Ammonia..surface,   raw$Ammonia..surface  ) )   
-## df$nitro     <- transform( df$nitrate + df$nitrite + df$ammonia ) ONLY NAs!!! 
-df$NO_total  <- transform( df$nitrate + df$nitrite )
-df$NO_spread <- transform( df$nitrate - df$nitrite )
+AvgTemp_1wk_c <- cent( orig_block$AvgTemp_1wk )
+AvgTemp_1wk_s <- scal(   orig_block$AvgTemp_1wk )
+df$AvgTemp_1wk     <- (orig_block$AvgTemp_1wk     - AvgTemp_1wk_c ) / AvgTemp_1wk_s
+df$AvgTemp_1wk_1wk <- (orig_block$AvgTemp_1wk_1wk - AvgTemp_1wk_c ) / AvgTemp_1wk_s
+df$AvgTemp_1wk_2wk <- (orig_block$AvgTemp_1wk_2wk - AvgTemp_1wk_c ) / AvgTemp_1wk_s
 
-## Wind
-df$wind_v    <- transform( past_week(raw$V.wind.componet.at.10m) )
-df$wind_u    <- transform( past_week(raw$U.wind.componet.at.10m) )
+AvgDens_1wk_c <- cent( orig_block$AvgDens_1wk )
+AvgDens_1wk_s <- scal(   orig_block$AvgDens_1wk )
+df$AvgDens_1wk     <- (orig_block$AvgDens_1wk     - AvgDens_1wk_c ) / AvgDens_1wk_s
+df$AvgDens_1wk_1wk <- (orig_block$AvgDens_1wk_1wk - AvgDens_1wk_c ) / AvgDens_1wk_s
+df$AvgDens_1wk_2wk <- (orig_block$AvgDens_1wk_2wk - AvgDens_1wk_c ) / AvgDens_1wk_s
 
-## Sea properties
-df$density   <- transform( past_week(raw$Surface.density.using.Shore.Station.Program.T..S,             
-                                       raw$Bottom.density.using.Shore.Station.Program.T.S) )
-df$temp      <- transform( past_week(raw$Daily.surface.water.temperature,
-                                       raw$Daily.bottom.water.temperature) )
-df$salinity  <- transform( past_week(raw$Daily.surface.salinity,
-                                       raw$Daily.bottom.salinity) )
+U_WIND_c <- cent( orig_block$U_WIND )
+U_WIND_s <- scal( orig_block$U_WIND )
+df$U_WIND     <- (orig_block$U_WIND     - U_WIND_c ) / U_WIND_s
+df$U_WIND_1wk <- (orig_block$U_WIND_1wk - U_WIND_c ) / U_WIND_s
+df$U_WIND_2wk <- (orig_block$U_WIND_2wk - U_WIND_c ) / U_WIND_s
 
-write.csv(df, file = "data/raw.csv",
+write.csv(df, file = "data/block.csv",
           quote = FALSE,
           row.names = FALSE )
-
 
 ##########################################################################
 ##########################################################################

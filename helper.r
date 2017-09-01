@@ -5,6 +5,7 @@ source( "plotting.r" )
 ## Functions I don't feel OK with and may need revision. Empty, hopefully
 ##########################################################################
 
+
 ## Returns a data frame with lags of time series ts, named var_0,
 ## var_1 etc. lagged E-1 times.
 multi_lag_var <- function( var, E )
@@ -49,6 +50,29 @@ look_ahead_var <- function( var, tp )
 ##########################################################################
 ## Functions I feel pretty OK with and don't need revision.
 ##########################################################################
+date2serial <- function( raw )
+{
+    dates      <- as.POSIXlt(as.Date(paste(raw$Year, raw$Month, raw$Day, sep="-"))) 
+    return( as.numeric(dates)/86400 + 719529 )
+}
+
+
+lag_half <- function( df, var )
+{
+    serial_day                        <- df$serial_day[1]:tail(df$serial_day,1)
+    ts                                <- rep( NA, length(serial_day) )
+    ts[serial_day %in% df$serial_day] <- df[ , var ]
+    mod_ts                            <- chl_half_modifier( ts )
+    mod_ts[is.nan(mod_ts)]            <- NA
+    lagged_ts                         <- half_week_steps( mod_ts, -1 )
+   
+    
+    half_df           <- data.frame( serial_day, lagged_ts )
+    colnames(half_df) <- c( "serial_day", paste0( var, "_mHalf" ) ) 
+    df                <- merge(x = df, y = half_df, by = "serial_day", all.x = TRUE)
+    return( df )
+}
+
 
 legal_indices <- function(serial_day,
                           numLags,

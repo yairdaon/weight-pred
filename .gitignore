@@ -3,3 +3,5 @@ data/*
 tmp.r
 .Rhistory
 *~
+*.jpg
+plots/*
