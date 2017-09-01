@@ -59,7 +59,27 @@ source( "ccm.r" )
 ###################################
 ## Multivariate ###################
 ###################################
-df   <- read.csv( "originals/chl_block.csv", header = TRUE )
+lag_half <- function( df, var )
+{
+    serial_day                        <- df$serial_day[1]:tail(df$serial_day,1)
+    ts                                <- rep( NA, length(serial_day) )
+    ts[serial_day %in% df$serial_day] <- df[ , var ]
+    mod_ts                            <- chl_half_modifier( ts )
+    mod_ts[is.nan(mod_ts)]            <- NA
+    lagged_ts                         <- half_week_steps( mod_ts, -1 )
+   
+    
+    half_df           <- data.frame( serial_day, lagged_ts )
+    colnames(half_df) <- c( "serial_day", paste0( var, "_mHalf" ) ) 
+    df                <- merge(x = df, y = half_df, by = "serial_day", all.x = TRUE)
+    return( df )
+}
+
+df  <- read.csv( "originals/chl_block.csv", header = TRUE )
+df  <- lag_half( df, "chl" )
+df  <- lag_half( df, "AvgTemp_1wk" )
+## print( df[ 1925:1950, c("serial_day", "chl", "chl_mHalf") ] )
+
 lib  <- scan( "originals/lib_rows.txt"  )
 pred <- scan( "originals/pred_rows.txt" )
 lib  <- c( min(lib), max(lib) ) 
@@ -70,33 +90,37 @@ all_pred_time <- pred[1]:pred[2]
 T             <- all_pred_time[1] - 1
 n             <- length( all_pred_time )
 
-vars <- c("nitrate",
-          "nitrate_m1wk",
-          "nitrate_m2wk",
-          "silicate",
-          "silicate_m1wk",
-          "silicate_m2wk",
-          "nitrite",
-          "nitrite_m1wk",
-          "nitrite_m2wk",
-          "AvgTemp_1wk",
-          "AvgTemp_1wk_m1wk",
-          "AvgTemp_1wk_m2wk",
-          "AvgDens_1wk",
-          "AvgDens_1wk_m1wk",
-          "AvgDens_1wk_m2wk",
-          "U_WIND",
-          "U_WIND_m1wk",
-          "U_WIND_m2wk",
-          "chl",
-          "chl_m1wk",
-          "chl_m2wk" )
+vars <- c(
+    "nitrate",
+    "nitrate_m1wk",
+    "nitrate_m2wk",
+    "silicate",
+    "silicate_m1wk",
+    "silicate_m2wk",
+    "nitrite",
+    "nitrite_m1wk",
+    "nitrite_m2wk",
+    "AvgTemp_1wk",
+    "AvgTemp_1wk_mHalf",
+    "AvgTemp_1wk_m1wk",
+    "AvgTemp_1wk_m2wk",
+    "AvgDens_1wk",
+    "AvgDens_1wk_m1wk",
+    "AvgDens_1wk_m2wk",
+    "U_WIND",
+    "U_WIND_m1wk",
+    "U_WIND_m2wk",
+    "chl",
+    "chl_mHalf",
+    "chl_m1wk",
+    "chl_m2wk"
+)
 
 
 best <- block_lnlp(df,
                    lib = lib,
                    pred = pred,
-                   method = "simplex", ##"s-map",
+                   method = "simplex",
                    tp = 0, # Cuz the time shift is alread in the
                                         # target
                    columns = c("chl",
@@ -104,7 +128,6 @@ best <- block_lnlp(df,
                                "AvgDens_1wk_m1wk",
                                "silicate"),
                    target_column = "chl_p1wk",
-                   #theta = 1.8,
                    short_output = TRUE,
                    stats_only = FALSE )
 
@@ -120,21 +143,20 @@ cum_pred   <- numeric(n)
 cum_weight <- numeric(n)
 
 ## Should have |vars|/4!4! = 8!/4!4! = ... = 70 combinations
-combinations <- combn( vars, 4 )
+combinations <- combn( vars, 3 )
 
 for( i in 1:dim(combinations)[2] )
 {
-    cols <- combinations[,i]
+    cols <- c( "chl", combinations[,i] )
 
     output <- block_lnlp(df,
                          lib = lib,
                          pred = pred,
-                         method = "simplex", ##"s-map",
+                         method = "simplex",
                          tp = 0, # Cuz the time shift is alread in the
                                  # target
                          columns = cols,
                          target_column = "chl_p1wk",
-                         ##theta = 1.5,
                          short_output = TRUE,
                          stats_only = FALSE )
 
