@@ -64,7 +64,7 @@ same_prediction <- function(lib_df,
     print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " )"   ) )
     print( paste0( "Total number of rows in data frame = ", nrow(df) ) )
     
-    output <- block_lnlp(df,
+    output <- block_lnlp(stacked,
                          lib = lib,
                          pred = pred,
                          method = method,
@@ -72,7 +72,8 @@ same_prediction <- function(lib_df,
                          columns = c("chl", "silicate_m1wk", "AvgDens_1wk", "silicate"),
                          target_column = "chl_p1wk",
                          theta = theta,
-                         stats_only = TRUE )
+                         stats_only = TRUE,
+                         first_column_time = TRUE )
     
     print( paste0( "OOS rho using best 4D model : ", output$rho ) )
 }
@@ -83,7 +84,6 @@ normalize <- function( ts, m, s )
     
 ## Prepare the data.
 load( "originals/chl_block_full.Rdata" )
-
 chl_mean <- mean( orig_block$chlA,        na.rm = TRUE )
 chl_sd   <- sd(   orig_block$chlA,        na.rm = TRUE )
 sil_mean <- mean( orig_block$silicate,    na.rm = TRUE )
@@ -92,12 +92,12 @@ den_mean <- mean( orig_block$AvgDens_1wk, na.rm = TRUE )
 den_sd   <- sd(   orig_block$AvgDens_1wk, na.rm = TRUE )
 
 df <- data.frame(
-    serial_day    = orig_block$serial_day,
-    chl_p1wk      = normalize( orig_block$chlA_.1wk,    chl_mean, chl_sd ),
-    chl           = normalize( orig_block$chlA,         chl_mean, chl_sd ),
-    silicate      = normalize( orig_block$silicate,     sil_mean, sil_sd ),
-    silicate_m1wk = normalize( orig_block$silicate_1wk, sil_mean, sil_sd ),
-    AvgDens_1wk   = normalize( orig_block$AvgDens_1wk,  den_mean, den_sd )
+    serial_day    =  orig_block$serial_day,
+    chl_p1wk      = (orig_block$chlA_.1wk     - chl_mean) / chl_sd, 
+    chl           = ( orig_block$chlA         - chl_mean) / chl_sd,
+    silicate      = ( orig_block$silicate     - sil_mean) / sil_sd, 
+    silicate_m1wk = ( orig_block$silicate_1wk - sil_mean) / sil_sd, 
+    AvgDens_1wk   = ( orig_block$AvgDens_1wk  - den_mean) / den_sd 
 )
 row.names( df ) <- 1:nrow(df)
 
