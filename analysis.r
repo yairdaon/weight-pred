@@ -68,8 +68,8 @@ if( grepl("cv", args, ignore.case = TRUE ) )
     xtension <- "OoS"
 }
 
-print( paste0( "Library = ( ",  lib[1], ", ",  lib[2], " )"   ) )
-print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " )"   ) )
+print( paste0( "Library = ( ",  lib[1], ", ",  lib[2], " ). Library size = ",  lib[2] -  lib[1] + 1  ) )
+print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " ). Test size = ",    pred[2] - pred[1] + 1  ) )
 print( paste0( "Total number of rows in data frame = ", nrow(df) ) )
 
 all_pred_obs  <- df$chl_p1wk[pred[1]:pred[2]]
@@ -88,6 +88,7 @@ best <- block_lnlp(df,
                    columns = c("chl", "silicate_1wk", "AvgDens_1wk", "silicate"),
                    target_column = "chl_p1wk",
                    theta = 8,
+                   num_neighbors = 0,
                    short_output = TRUE,
                    stats_only = FALSE )
 
@@ -109,12 +110,9 @@ lines(all_pred_time,
 ###########################################
 ## Now consider the averaged predictions ##
 ###########################################
-min_vars   <- rep( Inf, n )
-var_pred   <- rep( NA,  n )
-cum_pred   <- numeric(n)
-cum_weight <- numeric(n)
 
-## Explicitly state the variables allowed to be used for prediction
+## First, explicitly state the variables allowed to be used for
+## prediction.
 variables <- c("nitrate",
                "nitrate_1wk",
                "nitrate_2wk",
@@ -137,8 +135,18 @@ variables <- c("nitrate",
                "chl_2wk" )
                ## "chl", NOT including chl because it is included by default
 combinations <- combn( variables, 3 )
+num_comb     <- ncol(combinations)
 
-for( i in 1:dim(combinations)[2] )
+min_vars   <- rep( Inf, n )
+var_pred   <- rep( NA,  n )
+cum_pred   <- numeric(n)
+cum_weight <- numeric(n)
+
+all_pred   <- matrix( NA,  ncol( combinations ), n )
+all_vars   <- matrix( Inf, ncol( combinations ), n )
+
+
+for( i in 1:num_comb )
 {
     cols <- c( "chl", combinations[,i] )
 
@@ -150,59 +158,76 @@ for( i in 1:dim(combinations)[2] )
                          columns = cols,
                          target_column = "chl_p1wk",
                          theta = 8,
+                         num_neighbors = 0,
                          short_output = TRUE,
                          stats_only = FALSE )
 
+    ## Get model output: prediction times, predictions and variances:
     time <- output[[1]]$model_output$time - pred[1] + 1
-
-    ## The model's predictions
-    pr <- rep( NA, n )
-    pr[time] <- output[[1]]$model_output$pred
-
-    ## The prediction's associated variances
-    vars <- rep( Inf, n )
-    vars[ time ] <- output[[1]]$model_output$pred_var
-    vars[ is.nan(vars) ] <- Inf
-    vars[ is.na (vars) ] <- Inf
-    
+    pr   <- output[[1]]$model_output$pred
+    vars <- output[[1]]$model_output$pred_var
+               
     ## Sanity checks #####################
     len_time <- length(time)
-    len_pred <- length(output[[1]]$model_output$pred)
-    len_vars <- length(output[[1]]$model_output$pred_var)
+    len_pred <- length(pr)
+    len_vars <- length(vars)
 
     stopifnot( len_time == len_pred )
     stopifnot( len_time == len_vars )
-    
-    infys <- (vars==Inf)
-    nas   <- is.na(pr) 
-    if( any(infys!=nas) )
-        stop( "Infinite vairance and NA predictions do not match!" )
 
-    ## Where we don't have prediction set it to some arbitrary
-    ## value. This will not propagate to the final prediction since we
-    ## force their corresponding variance to be infinite.
-    pr[ is.na(pr) ] <- 0 
-    stopifnot( !any( is.na(vars) ) )
+    no_vars <- is.na(vars) | is.nan(vars)
+    no_pr   <- is.na(pr) 
+    if( any(no_vars!=no_pr) )
+        stop( "No prediction indices do not align with no variance indices!" )
+
+    ## Where we don't have variance, set it to infinity. Where there
+    ## is no prediction set it to some arbitrary value (zero). This
+    ## will not propagate to the final prediction since we force their
+    ## corresponding variance to be infinite.
+    vars[ no_vars ] <- Inf
+    pr  [ no_pr   ] <- 0 
     
     ## Choose new predictions if they are less uncertain than previous
     ## ones.
-    min_ind                   <- which( vars < min_vars )
-    min_vars[min_ind]         <- vars[min_ind]
-    var_pred[min_ind]         <- pr[min_ind]
+    ## min_ind                   <- which( vars < min_vars[time] )
+    ## min_vars[time][min_ind]         <- vars[min_ind]
+    ## var_pred[time][min_ind]         <- pr[min_ind]
 
     ## Weigh new predictions compare to previous ones
-    weight     <- exp(-2*vars)
-    cum_pred   <- cum_pred + weight * pr  
-    cum_weight <- cum_weight + weight
+    ## weight    [time] <- exp(-vars)
+    ## cum_pred  [time] <- cum_pred  [time] + weight * pr  
+    ## cum_weight[time] <- cum_weight[time] + weight
+
+    ## After all manipulations are done, store the values
+    all_pred[ i, time ]  <- pr
+    all_vars[ i, time ]  <- vars 
 
 }
 
-cum_pred <- cum_pred / cum_weight
-two_pred <- ( cum_pred + var_pred ) / 2
+## Somehow normalize variances? Seems to not help at all.
+## all_vars <- all_vars / median( as.vector( all_vars ) ) 
+
+for( i in 1:n )
+{
+    ind <- order( all_vars[ , i] )
+    all_vars[ , i ] <- all_vars[ ind , i ]
+    all_pred[ , i ] <- all_pred[ ind , i ]
+}
+
+## Restrict to the top performing fraction of models
+## all_vars <- all_vars[ (num_comb-5):num_comb,  ]
+## all_pred <- all_pred[ (num_comb-5):num_comb,  ]
+
+weights         <- exp( -all_vars ) 
+cum_weight_pred <- colSums( weights * all_pred )
+sum_weights     <- colSums( weights )
+weight_pred     <- cum_weight_pred / sum_weights
+
+
 
 stopifnot( length(all_pred_time) == length(best_pred   ) )
-stopifnot( length(all_pred_time) == length(cum_pred    ) )
-stopifnot( length(all_pred_time) == length(var_pred    ) )
+stopifnot( length(all_pred_time) == length(weight_pred ) )
+## stopifnot( length(all_pred_time) == length(var_pred    ) )
 
 
 jpeg( paste0( "plots/avg_pred_", xtension, ".jpg" ) )
@@ -212,33 +237,32 @@ plot(all_pred_time,
      col = "black",
      main = "Averaged model predictions compared to truth")
 lines(all_pred_time,
-      cum_pred,
+      weight_pred,
       col = "red" )
+warnings()
+## jpeg( paste0( "plots/minvar_pred_", xtension, ".jpg" ) )
+## plot(all_pred_time,
+##      all_pred_obs,
+##      type = "l",
+##      col  = "black",
+##      main = "Minimal variance predictions compared to truth")
+## lines(all_pred_time,
+##       var_pred,
+##       col = "blue" )
 
-jpeg( paste0( "plots/minvar_pred_", xtension, ".jpg" ) )
-plot(all_pred_time,
-     all_pred_obs,
-     type = "l",
-     col  = "black",
-     main = "Minimal variance predictions compared to truth")
-lines(all_pred_time,
-      var_pred,
-      col = "blue" )
-
-jpeg( paste0( "plots/both_pred_", xtension, ".jpg" ) )
-plot(all_pred_time,
-     all_pred_obs,
-     type = "l",
-     col  = "black",
-     main = "Two models predictions compared to truth")
-lines(all_pred_time,
-      two_pred,
-      col = "purple" )
+## jpeg( paste0( "plots/both_pred_", xtension, ".jpg" ) )
+## plot(all_pred_time,
+##      all_pred_obs,
+##      type = "l",
+##      col  = "black",
+##      main = "Two models predictions compared to truth")
+## lines(all_pred_time,
+##       two_pred,
+##       col = "purple" )
 
 
 print( paste0( "Skill using best predictor:      ",  best_rho ) )
-print( paste0( "Skill using weighted predictors: ",  cor(cum_pred,  all_pred_obs, use = "complete.obs") ) )
-print( paste0( "Skill using min var predictors:  ",  cor(var_pred,  all_pred_obs, use = "complete.obs") ) )
-print( paste0( "Skill averaging both previous:   ",  cor(two_pred,  all_pred_obs, use = "complete.obs") ) )
-
+print( paste0( "Skill using weighted predictors: ",  cor(weight_pred,  all_pred_obs, use = "complete.obs") ) )
+## print( paste0( "Skill using min var predictors:  ",  cor(var_pred,  all_pred_obs, use = "complete.obs") ) )
+## print( paste0( "Skill averaging both previous:   ",  cor(two_pred,  all_pred_obs, use = "complete.obs") ) )
 ## warnings()

@@ -48,6 +48,7 @@ same_prediction <- function(lib_df,
     ## Stack both data frames 
     stacked <- rbind( lib_df, pred_df )
 
+    ## Probably don't need to sort etc. but just in case...
     stacked <- stacked[ order(stacked$serial_day), ]
     row.names( stacked ) <- 1:nrow( stacked )
     stopifnot( all(
@@ -60,22 +61,23 @@ same_prediction <- function(lib_df,
     pred_range <- which( date_range_indices( stacked, pred_start, pred_end ) )
     pred <- c( min(pred_range), max(pred_range) )
     
-    print( paste0( "Library = ( ", lib[1],  ", ", lib[2],  " )"   ) )
-    print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " )"   ) )
-    print( paste0( "Total number of rows in data frame = ", nrow(df) ) )
+    print( paste0( "Library = ( ",  lib[1], ", ",  lib[2], " ). Library size = ",  lib[2] -  lib[1] + 1  ) )
+    print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " ). Test size = ",    pred[2] - pred[1] + 1  ) )
+    print( paste0( "Total number of rows in data frame = ", nrow(stacked) ) )
     
     output <- block_lnlp(stacked,
                          lib = lib,
                          pred = pred,
                          method = method,
                          tp = 0,                    
+                         ## columns = c("chl", "silicate_m1wk", "AvgDens_1wk_m1wk", "silicate"),
                          columns = c("chl", "silicate_m1wk", "AvgDens_1wk", "silicate"),
                          target_column = "chl_p1wk",
                          theta = theta,
                          stats_only = TRUE,
                          first_column_time = TRUE )
     
-    print( paste0( "OOS rho using best 4D model : ", output$rho ) )
+    print( paste0( "OoS rho using best 4D model : ", output$rho ) )
 }
         
 ## Prepare the data: mostly uninteresting code
@@ -87,12 +89,13 @@ sil_sd   <- sd(   orig_block$silicate,    na.rm = TRUE )
 den_mean <- mean( orig_block$AvgDens_1wk, na.rm = TRUE )
 den_sd   <- sd(   orig_block$AvgDens_1wk, na.rm = TRUE )
 df <- data.frame(
-    serial_day    =  orig_block$serial_day,
-    chl_p1wk      = (orig_block$chlA_.1wk     - chl_mean) / chl_sd, 
-    chl           = ( orig_block$chlA         - chl_mean) / chl_sd,
-    silicate      = ( orig_block$silicate     - sil_mean) / sil_sd, 
-    silicate_m1wk = ( orig_block$silicate_1wk - sil_mean) / sil_sd, 
-    AvgDens_1wk   = ( orig_block$AvgDens_1wk  - den_mean) / den_sd 
+    serial_day       =   orig_block$serial_day,
+    chl_p1wk         = ( orig_block$chlA_.1wk       - chl_mean) / chl_sd, 
+    chl              = ( orig_block$chlA            - chl_mean) / chl_sd,
+    silicate         = ( orig_block$silicate        - sil_mean) / sil_sd, 
+    silicate_m1wk    = ( orig_block$silicate_1wk    - sil_mean) / sil_sd, 
+    AvgDens_1wk      = ( orig_block$AvgDens_1wk     - den_mean) / den_sd,
+    AvgDens_1wk_m1wk = ( orig_block$AvgDens_1wk_1wk - den_mean) / den_sd 
 )
 row.names( df ) <- 1:nrow(df)
 
@@ -113,7 +116,7 @@ bloom_lib  <- get_blooms( df, threshold,  lib_start,  lib_end )
 bloom_pred <- get_blooms( df, threshold, pred_start, pred_end )
 
 method <- "s-map" ##"simplex"
-theta <- 8
+theta  <- 8
 same_prediction(full_lib,
                 full_pred,
                 lib_start,
