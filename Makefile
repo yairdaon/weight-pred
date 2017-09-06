@@ -1,7 +1,7 @@
 run:
 	./preprocess.r
-	./analysis.r oos
-	./analysis.r cv
+	./weights.r oos
+	./weights.r cv
 
 clean:
 	rm -rvf *.csv  *~ *.txt data/* plots/*

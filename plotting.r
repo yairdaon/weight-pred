@@ -3,6 +3,40 @@ hold <- function(n=1){
     invisible(readLines("stdin", n))
 }
 
+weight_plot <- function(time,
+                        obs,
+                        weights,
+                        filename,
+                        xtension )
+    
+{
+    jpeg( paste0( "plots/", filename, "_", xtension, ".jpg" ) )
+
+    par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for z axis
+    plot(time,
+         obs,
+         type = "l",
+         col  = "black",
+         xlab = "time(days)",
+         ylab = "chlorophyll A",
+         main = paste0( "Chlorophyll observations and ", gsub( "_", " ", filename), " weights.")
+         )
+    par(new = TRUE)
+    plot(time,
+         weights,
+         type = "l",
+         col = "red",
+         axes = FALSE,
+         bty = "n",
+         xlab = "",
+         ylab = "")
+    axis( side=4, at = pretty(range(weights)) )
+    mtext("weights", side=4, line=3 )
+    dev.off()
+    
+}
+
+
 harry_plotter <- function(x, tit)
 {
     tit <- paste( "Transformed ", tit, " data" )

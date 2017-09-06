@@ -50,10 +50,21 @@ look_ahead_var <- function( var, tp )
 ##########################################################################
 ## Functions I feel pretty OK with and don't need revision.
 ##########################################################################
-date2serial <- function( raw )
+date2serial <- function( date_string )
+    return(
+        as.numeric(as.POSIXlt(as.Date(date_string)))/86400 + 719529
+    )
+
+## Gives indices of the rows of df that have dates between dt1 and dt2
+date_range_indices <- function( df, start, finish )
+    return(
+    (df$serial_day >= start) & (df$serial_day <= finish)
+    )
+
+get_range <- function( df, start, finish )
 {
-    dates      <- as.POSIXlt(as.Date(paste(raw$Year, raw$Month, raw$Day, sep="-"))) 
-    return( as.numeric(dates)/86400 + 719529 )
+    range <- which( date_range_indices( df, start, finish ) )
+    return( c( min(range), max(range) ) )
 }
 
 
