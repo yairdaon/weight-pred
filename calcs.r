@@ -50,6 +50,7 @@ if( grepl("cv", args, ignore.case = TRUE ) )
     pred <- get_range( df, pred_start, pred_end )  
     xtension <- "OoS"
 }
+ALL <- grepl("all", args, ignore.case = TRUE ) 
 
 print( paste0( "Library = ( ",  lib[1], ", ",  lib[2], " ). Library size = ",  lib[2] -  lib[1] + 1  ) )
 print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " ). Test size = ",    pred[2] - pred[1] + 1  ) )
@@ -57,57 +58,69 @@ print( paste0( "Total number of rows in data frame = ", nrow(df) ) )
 
 all_obs  <- df$chl_p1wk[pred[1]:pred[2]]
 all_time <- pred[1]:pred[2]
-n             <- length( all_time )
+n        <- length( all_time )
 stopifnot( length(all_obs) == n )
 
 ## Start at 4, so we skip serial_day, chl_p1wk and chl
-variables <- names(df)[4:length(names(df))]
-## variables <- variables[1:6]
-n_vars <- length(variables)
+other_vars <- names(df)[4:length(names(df))]
+n_vars <- length( other_vars )
 
 combinations <- combn( n_vars, 3 )
 num_comb     <- ncol(combinations)
 
-## exp_vars  <- matrix( 0,   n_vars,               n )       
-## precision <- matrix( 0,   n_vars,               n )       
+exp_vars  <- matrix( 0,   n_vars,               n )       
+precision <- matrix( 0,   n_vars,               n )       
 
 sum_exp  <- rep( 0 , n )
 sum_var  <- rep( 0 , n )
 sum_prec <- rep( 0 , n )
+tot_pred <- rep( 0 , n )
+cum_pred <- rep( 0 , n )
+
 
 for( i in 1:num_comb )
 {
     comb <- combinations[,i]
     ## cols <- c( "chl", combinations[,i] )
-    ## cols <- c( 3, comb )
-    
+    cols <- c( 3, comb + 3 )
+      
     output <- block_lnlp(df,
                          lib = lib,
                          pred = pred,
                          method = "s-map",
                          tp = 0, # Time shift is built into the target
-                         columns = c( 3, comb + 3 ),
+                         columns = cols, ##c( 3, comb + 3 ),
                          target_column = 2, ##"chl_p1wk",
                          theta = 8,
-                         num_neighbors = 0, ## Effectively, take all neighbours
+                         num_neighbors = -1, ## Take all neighbours
                          first_column_time = FALSE,
                          short_output = TRUE,
                          stats_only = FALSE )
 
-
     ## Get model output: prediction times, predictions and variances:
     time <- output[[1]]$model_output$time - pred[1] + 1
+    pr   <- output[[1]]$model_output$pred
     vars <- output[[1]]$model_output$pred_var
-        
+    
     ## Sanity checks #####################
     len_time <- length(time)
     len_vars <- length(vars)
-
+    len_pred <- length(pr)
+    
     stopifnot( len_time == len_vars )
+    stopifnot( len_time == len_pred )
 
-    ind <- is.na(vars) | is.nan(vars)
-
-
+    no_vars <- is.na(vars) | is.nan(vars)
+    no_pr   <- is.na(pr) 
+    if( any(no_vars!=no_pr) )
+        stop( "No prediction indices do not align with no variance indices!" )
+    ind <- no_pr
+    
+    
+    ## Keep count of how many predictions were not NA at every single
+    ## time.
+    tot_pred[time] <- tot_pred[time] + !ind
+       
     w <- exp(-vars)
     w[ ind ] <- 0
     sum_exp[time] <- sum_exp[time] + w
@@ -118,48 +131,28 @@ for( i in 1:num_comb )
 
     vars[ ind ] <- 0
     sum_var[time] <- sum_var[time] + vars 
-        
-    
-    ## exp_vars[  comb[1], time ]  <- exp_vars[ comb[1], time ] + w
-    ## exp_vars[  comb[2], time ]  <- exp_vars[ comb[2], time ] + w
-    ## exp_vars[  comb[3], time ]  <- exp_vars[ comb[3], time ] + w
 
-    ## precision[ comb[1], time ] <- precision[ comb[1], time ] + u
-    ## precision[ comb[2], time ] <- precision[ comb[2], time ] + u
-    ## precision[ comb[3], time ] <- precision[ comb[3], time ] + u
-    
 
+    ## Weigh new predictions compare to previous ones
+    pr[ ind ] <- 0
+    cum_pred[time] <- cum_pred[time] + w * pr  
+    
+    
 }
 
-
-## for( i in 1:n_vars )
-## {
-##     print( paste0( "Plotting variable ", i, " of ", n_vars, ": ", variables[i] ) )
-
-    
-##     weight_plot(all_time,
-##                 all_obs,
-##                 precision[i, ],
-##                 paste0( "precision_", variables[i] ),
-##                 xtension )
-
-##     weight_plot(all_time,
-##                 all_obs,
-##                 precision[i, ],
-##                 paste0( "exp_var", variables[i] ),
-##                 xtension )
-## }
 sum_exp[ sum_exp == 0 ] <- NA
-weight_plot(all_time,
-            all_obs,
-            sum_exp / num_comb,
-            "precision_all",
-            xtension )
-
-
+sum_var[ sum_var == 0 ] <- NA
 sum_prec[ sum_prec == 0 ] <- NA
-weight_plot(all_time,
-            all_obs,
-            sum_prec / num_comb,
-            "exp_var_all",
-            xtension )
+predictions <- cum_pred / sum_exp 
+
+filename <- paste0( "data/",xtension, "data.Rdata" ) 
+df <- data.frame(serial_day = all_time,
+                 chl = all_obs,
+                 exp_var = sum_exp / tot_pred,
+                 variance = sum_var / tot_pred,
+                 precision = sum_prec / tot_pred,
+                 predictions = predictions )
+save(df,file=filename)
+
+
+print( paste0( "Skill using weighted predictors: ",  cor(predictions,  all_obs, use = "complete.obs") ) )
