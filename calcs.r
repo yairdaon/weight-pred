@@ -15,15 +15,6 @@ pred_end   <- date2serial( "2012-03-30" )
 ## Read the normalized block
 orig_df <- read.csv( "data/block.csv", header = TRUE )
 
-## ## Library and prediction data frames. Not strictly necessary, just
-## ## making sure.
-## lib_df  <- orig_df[ date_range_indices( orig_df,  lib_start,  lib_end ), ]
-## pred_df <- orig_df[ date_range_indices( orig_df, pred_start, pred_end ), ]
-
-## ## Stack both data frames 
-## df <- rbind( lib_df, pred_df )
-## row.names( df ) <- 1:nrow( df )
-
 ## Reorder the data frame so that , just in case
 df <- orig_df[ order(orig_df$serial_day), ]
 row.names( df ) <- 1:nrow( df )
@@ -52,31 +43,16 @@ if( grepl("cv", args, ignore.case = TRUE ) )
 }
 ALL <- grepl("all", args, ignore.case = TRUE ) 
 
-print( paste0( "Library = ( ",  lib[1], ", ",  lib[2], " ). Library size = ",  lib[2] -  lib[1] + 1  ) )
-print( paste0( "Test    = ( ", pred[1], ", ", pred[2], " ). Test size = ",    pred[2] - pred[1] + 1  ) )
-print( paste0( "Total number of rows in data frame = ", nrow(df) ) )
-
-all_obs  <- df$chl_p1wk[pred[1]:pred[2]]
-all_time <- pred[1]:pred[2]
-n        <- length( all_time )
-stopifnot( length(all_obs) == n )
+n        <- pred[2] - pred[1] + 1
 
 ## Start at 4, so we skip serial_day, chl_p1wk and chl
 other_vars <- names(df)[4:length(names(df))]
 n_vars <- length( other_vars )
-
 combinations <- combn( n_vars, 3 )
 num_comb     <- ncol(combinations)
 
-exp_vars  <- matrix( 0,   n_vars,               n )       
-precision <- matrix( 0,   n_vars,               n )       
-
-sum_exp  <- rep( 0 , n )
-sum_var  <- rep( 0 , n )
-sum_prec <- rep( 0 , n )
-tot_pred <- rep( 0 , n )
-cum_pred <- rep( 0 , n )
-
+pred_table <- matrix( NA,  nrow = num_comb, ncol = n )
+var_table  <- matrix( Inf, nrow = num_comb, ncol = n )
 
 for( i in 1:num_comb )
 {
@@ -116,43 +92,18 @@ for( i in 1:num_comb )
         stop( "No prediction indices do not align with no variance indices!" )
     ind <- no_pr
     
-    
-    ## Keep count of how many predictions were not NA at every single
-    ## time.
-    tot_pred[time] <- tot_pred[time] + !ind
-       
-    w <- exp(-vars)
-    w[ ind ] <- 0
-    sum_exp[time] <- sum_exp[time] + w
-    
-    u <- 1 / vars
-    u[ ind ] <- 0
-    sum_prec[time] <- sum_prec[time] + u
+    ## Save ALL data.
+    pr[ ind ] <- NA
+    vars[ ind ] <- Inf
+    pred_table[ i, time ] <- pr
+    var_table [ i, time ] <- vars
 
-    vars[ ind ] <- 0
-    sum_var[time] <- sum_var[time] + vars 
-
-
-    ## Weigh new predictions compare to previous ones
-    pr[ ind ] <- 0
-    cum_pred[time] <- cum_pred[time] + w * pr  
-    
-    
 }
 
-sum_exp[ sum_exp == 0 ] <- NA
-sum_var[ sum_var == 0 ] <- NA
-sum_prec[ sum_prec == 0 ] <- NA
-predictions <- cum_pred / sum_exp 
-
-filename <- paste0( "data/",xtension, "data.Rdata" ) 
-df <- data.frame(serial_day = all_time,
-                 chl = all_obs,
-                 exp_var = sum_exp / tot_pred,
-                 variance = sum_var / tot_pred,
-                 precision = sum_prec / tot_pred,
-                 predictions = predictions )
-save(df,file=filename)
-
-
-print( paste0( "Skill using weighted predictors: ",  cor(predictions,  all_obs, use = "complete.obs") ) )
+save(pred_table,
+     var_table,
+     combinations,
+     other_vars,
+     n_vars,
+     file = paste0("data/", tolower(xtension), "_full_run.Rdata" )
+     )
