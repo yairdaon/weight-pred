@@ -51,8 +51,8 @@ n_vars <- length( other_vars )
 combinations <- combn( n_vars, 3 )
 num_comb     <- ncol(combinations)
 
-pred_table <- matrix( NA,  nrow = num_comb, ncol = n )
-var_table  <- matrix( Inf, nrow = num_comb, ncol = n )
+pred_table <- matrix( NA,    nrow = num_comb, ncol = n )
+var_table  <- matrix( Inf,   nrow = num_comb, ncol = n )
 
 for( i in 1:num_comb )
 {
@@ -96,8 +96,7 @@ for( i in 1:num_comb )
     pr[ ind ] <- NA
     vars[ ind ] <- Inf
     pred_table[ i, time ] <- pr
-    var_table [ i, time ] <- vars
-
+    var_table [ i, time ] <- vars    
 }
 
 save(pred_table,
