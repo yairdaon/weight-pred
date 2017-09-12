@@ -3,37 +3,51 @@ hold <- function(n=1){
     invisible(readLines("stdin", n))
 }
 
-weight_plot <- function(time,
-                        obs,
-                        weights,
-                        filename,
-                        xtension )
+
+double_plot <- function(x,  ## time
+                        y1, ## chlorophyll
+                        y2, ## uncertainty
+                        q = quantile( y1, 0.95, na.rm = TRUE),
+                        xlabel   = "x",
+                        y1label  = "black",
+                        y2label  = "red",
+                        title    = "",
+                        filename = FALSE
+                        )
     
 {
-    jpeg( paste0( "plots/", filename, "_", xtension, ".jpg" ) )
-
-    par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for z axis
-    plot(time,
-         obs,
+    if( filename == FALSE )
+        x11()
+    else
+        pdf( paste0("plots/", filename, ".pdf") )
+    
+    par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for y2 axis
+    plot(x,
+         y1,
          type = "l",
          col  = "black",
-         xlab = "time(days)",
-         ylab = "chlorophyll A",
-         main = paste0( "Chlorophyll observations and ", gsub( "_", " ", filename), " weights.")
+         xlab = xlabel,
+         ylab = y1label,
+         main = title
          )
+    abline(q, 0, col = "green" )
+        
     par(new = TRUE)
-    plot(time,
-         weights,
+    plot(x,
+         y2,
          type = "l",
          col = "red",
          axes = FALSE,
          bty = "n",
          xlab = "",
          ylab = "")
-    axis( side=4, at = pretty(range(weights)) )
-    mtext("weights", side=4, line=3 )
-    dev.off()
-    
+    axis( side=4, at = pretty(range(y2)) )
+    mtext(y2label, side=4, line=3 )
+
+    if( filename == FALSE )
+        hold(1)
+    else
+        dev.off()
 }
 
 

@@ -1,60 +1,40 @@
 #!/usr/bin/Rscript
 library(rEDM)
-source( "plotting.r" )
-source( "helper.r" )
-
-lib_start  <- date2serial( "1983-01-01" )
-lib_end    <- date2serial( "2010-12-28" )
-pred_start <- date2serial( "2011-01-01" )
-pred_end   <- date2serial( "2012-03-30" )
+source( "helpers/helper.r" )
 
 ###################################
 ## Prepare the data ###############
 ###################################
 
-## Read the normalized block
-orig_df <- read.csv( "data/block.csv", header = TRUE )
-
-## Reorder the data frame so that , just in case
-df <- orig_df[ order(orig_df$serial_day), ]
-row.names( df ) <- 1:nrow( df )
-
-## Make sure serial_day increase in time
-stopifnot( all(
-    diff( df$serial_day ) > 0
-) )
+## Read the data. Contains df (the data frame), as well as
+## chl_threshold and norm_threshold.
+load( "data/processed_block.Rdata" )
 
 args <- commandArgs(trailingOnly = TRUE)
-if( grepl("cv", args, ignore.case = TRUE ) )
-{
-    print( "Leave-one-out cross-validation" )
-    ## In leave-one-out-cross-validation we force the library and the
-    ## prediction sets to be the same. This tells the code to use
-    ## LOOCV.
-    lib  <- get_range( df,  lib_start, pred_end )
-    pred <- get_range( df,  lib_start, pred_end )
-    xtension <- "LOOCV"
-} else {
-    print( "Out-of-sample results" )
-    ## If we do not want to do LOOCV we show out-of-sample skill.
-    lib  <- get_range( df,  lib_start,  lib_end )
-    pred <- get_range( df, pred_start, pred_end )  
+if( (length(args) == 0)  ) {
+    xtension <- "Test"
+} else if (grepl("oos", args, ignore.case = TRUE )) {
     xtension <- "OoS"
+} else {
+    xtension <- "LOOCV"
 }
-ALL <- grepl("all", args, ignore.case = TRUE ) 
+load(paste0("data/", tolower(xtension), "_serial_days.Rdata"))
 
-n        <- pred[2] - pred[1] + 1
+
+
+lib  <- get_range( df,  lib_serial_days )
+pred <- get_range( df, pred_serial_days )  
+n    <- pred[2] - pred[1] + 1
 
 ## Start at 4, so we skip serial_day, chl_p1wk and chl
 other_vars <- names(df)[4:length(names(df))]
 n_vars <- length( other_vars )
 combinations <- combn( n_vars, 3 )
-num_comb     <- ncol(combinations)
 
-pred_table <- matrix( NA,    nrow = num_comb, ncol = n )
-var_table  <- matrix( Inf,   nrow = num_comb, ncol = n )
+pred_table <- matrix( NA,  nrow = ncol(combinations), ncol = n )
+var_table  <- matrix( Inf, nrow = ncol(combinations), ncol = n )
 
-for( i in 1:num_comb )
+for( i in 1:ncol(combinations) )
 {
     comb <- combinations[,i]
     ## cols <- c( "chl", combinations[,i] )
@@ -99,10 +79,18 @@ for( i in 1:num_comb )
     var_table [ i, time ] <- vars    
 }
 
+chl            <- df$chl       [pred[1]:pred[2]]
+chl_p1wk       <- df$chl_p1wk  [pred[1]:pred[2]]
+serial_day     <- df$serial_day[pred[1]:pred[2]]
+norm_threshold <- quantile(df$chl, 0.95, na.rm = TRUE ) 
 save(pred_table,
      var_table,
      combinations,
      other_vars,
      n_vars,
+     chl,
+     chl_p1wk,
+     serial_day,
+     norm_threshold,
      file = paste0("data/", tolower(xtension), "_full_run.Rdata" )
      )
