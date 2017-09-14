@@ -4,7 +4,7 @@ source( "helpers/helper.r" )
 
 get_blooms   <- function( df, threshold, ran )
 {
-    xtend       <- function(n) return( (-7:7) + n )
+    xtend       <- function(n) return( (-14:14) + n )
     
     ## Find the bloom rows
     bloom_rows <- which( df$chl > threshold )
@@ -55,14 +55,17 @@ same_prediction <- function(lib_df,
                          pred = pred,
                          method = method,
                          tp = 0,             
-                         columns = c("chl", "silicate_1wk", "AvgDens_1wk", "silicate"),
+                         columns = c("chl", "silicate_1wk", "AvgDens_1wk", "silicate" ),
                          target_column = "chl_p1wk",
                          theta = theta,
                          num_neighbors = -1,
-                         stats_only = TRUE,
-                         first_column_time = TRUE )
+                         stats_only = TRUE )
     
+    ## pr <- rep( NA, pred[2] - pred[1] + 1 )
+    ## pr[output[[1]]$model_output$time] <- output[[1]]$model_output$pred
+    ## print( paste0( "Rho using best 4D model : ", cor(stacked$chl_p1wk, pr, use="complete.obs" ) ) ) 
     print( paste0( "Rho using best 4D model : ", output$rho ) )
+   
 }
         
 ## Load the data: df, chl_threshold and norm_threshold.
@@ -98,4 +101,15 @@ same_prediction(bloom_lib,
                 bloom_pred,
                 method,
                 theta)
+
+output <- block_lnlp(rbind(full_lib, full_pred),
+                     method = method,
+                     tp = 0,             
+                     columns = c("chl", "silicate_1wk", "AvgDens_1wk", "silicate"),
+                     target_column = "chl_p1wk",
+                     theta = theta,
+                     num_neighbors = -1,
+                     stats_only = TRUE )
+    
+print( paste0( "LOOCV rho using best 4D model : ", output$rho ) )
 

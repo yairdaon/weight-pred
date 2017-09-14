@@ -1,16 +1,21 @@
-test:	
+test:
+	make plots/exp_time_series_test.svg
 	make plots/precision_weighted_predictions_test.pdf
-	make plots/var_chl_test.pdf	
+	make plots/var_chl_test.pdf
+
 
 oos:
+	make plots/exp_time_series_oos.svg
 	make plots/precision_weighted_predictions_oos.pdf
 	make plots/var_chl_oos.pdf
 
 loocv:
+	make plots/exp_time_series_loocv.svg
 	make plots/precision_weighted_predictions_loocv.pdf
 	make plots/var_chl_loocv.pdf
 
-all_pred:	
+all_pred:
+	make 
 	make analysis/all_predictions.r
 
 everything:
@@ -29,6 +34,14 @@ plots/precision_weighted_predictions_oos.pdf: analysis/predictors.r data/oos_ful
 	./analysis/predictors.r oos
 plots/precision_weighted_predictions_loocv.pdf: analysis/predictors.r data/loocv_full_run.Rdata
 	./analysis/predictors.r loocv
+
+plots/exp_time_series_test.svg: analysis/predictors.r data/test_full_run.Rdata
+	./analysis/predictors.r 
+plots/exp_time_series_oos.svg: analysis/predictors.r data/oos_full_run.Rdata
+	./analysis/predictors.r oos 
+plots/exp_time_series_loocv.svg: analysis/predictors.r data/loocv_full_run.Rdata
+	./analysis/predictors.r loocv
+
 
 plots/var_chl_test.pdf: analysis/vars.r data/test_full_run.Rdata
 	./analysis/vars.r

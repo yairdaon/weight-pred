@@ -70,7 +70,6 @@ for( j in 1:length(probs) )
     prec_rhos[j] <- prec_rho
 }
 
-print( probs[which.max(exp_rhos)] )
 
 pdf(paste0("plots/exp_weighted_predictions_", tolower(xtension), ".pdf") )
 plot(probs,
@@ -92,3 +91,46 @@ plot(probs,
      )
 dev.off()
 
+
+
+exp_weight <- numeric(n)
+cutoff <- probs[which.max(exp_rhos)]
+
+## For every prediction day ...
+for( i in 1:n )
+{
+    ## Extract uncertainty of all predictors and find its quantiles
+    v <- var_table[ , i]
+    q <- quantile( v, cutoff )
+
+    ## Find who is in that quantile, get corresponding
+    ## predictions and get corresponding weights, both
+    ## exponential and precision.
+    ind <- which( v < q )
+    p <- pred_table[ ind, i]
+    exp_w  <- exp(-v[ind])
+    
+    ## Weight the predictors according to the weights and store
+    ## the weighted prediction in the preallocated matrices.
+    exp_weight [i] <- sum(p * exp_w) / sum(exp_w)
+}
+
+svg( paste0("plots/exp_time_series_", tolower(xtension), ".svg"), width = 100 ) 
+plot(chl_p1wk,
+     type='l', 
+     bty = "l",
+     col = "black",
+     ylim = c(-1, 10)
+     )
+lines(exp_weight,
+      col = "red")
+abline(norm_threshold,
+       0,
+       col = "green" )
+legend("topleft",
+       legend = c( "True Chl", "Exp weighted predictors", "95% threshold" ),
+       lty = 1,
+       bty = 'n',
+       cex = .75,
+       col = c( "black", "red", "green" ) )
+dev.off()
