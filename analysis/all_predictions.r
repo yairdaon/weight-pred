@@ -2,33 +2,11 @@
 library(rEDM)
 source( "helpers/helper.r" )
 
-get_blooms   <- function( df, threshold, ran )
-{
-    xtend       <- function(n) return( (-14:14) + n )
-    
-    ## Find the bloom rows
-    bloom_rows <- which( df$chl > threshold )
-
-    ## Using the rows, find bloom days
-    bloom_days <- df$serial_day[bloom_rows]
-
-    ## Extend the bloom days one week in both directions
-    bloom_days <- unique( as.vector( sapply(bloom_days, xtend ) ) )
-
-    ## Restrict the data frame to the above mentioned bloom days
-    bloom_df   <- df[ df$serial_day %in% bloom_days, ]
-    rownames( bloom_df ) <- 1:nrow(bloom_df)
-
-    ## Restrict to the desired date range
-    bloom_df <- bloom_df[ range_indices( bloom_df, ran ), ]
-    
-    return( bloom_df )
-}
-
 same_prediction <- function(lib_df,
                             pred_df,
-                            method,
-                            theta)
+                            model,
+                            method = "s-map",
+                            theta  = 8 )
 {
     ## Stack both data frames 
     stacked <- rbind( lib_df, pred_df )
@@ -55,7 +33,7 @@ same_prediction <- function(lib_df,
                          pred = pred,
                          method = method,
                          tp = 0,             
-                         columns = c("chl", "silicate_1wk", "AvgDens_1wk", "silicate" ),
+                         columns = model,
                          target_column = "chl_p1wk",
                          theta = theta,
                          num_neighbors = -1,
@@ -74,6 +52,9 @@ load( "data/processed_block.Rdata" )
 ## Load the lib_start, lib_end, pred_start, pred_end variables
 load("data/oos_serial_days.Rdata" )
 
+model <- c("chl", "silicate_1wk", "AvgDens", "silicate" )
+print( paste( "Predictions for the model ", paste0(model, collapse = ", ") , ". All variables are: ", sep = " ", collapse = ", " ))
+print( names(df) )
 full_lib  <- df[ range_indices( df,  lib_serial_days), ]
 full_pred <- df[ range_indices( df, pred_serial_days), ]
 
@@ -84,21 +65,25 @@ method <- "s-map"
 theta  <- 8
 same_prediction(full_lib,
                 full_pred,
+                model,
                 method,
                 theta)
 
 same_prediction(full_lib,
                 bloom_pred,
+                model,
                 method,
                 theta )
 
 same_prediction(bloom_lib,
                 full_pred,
+                model,
                 method,
                 theta )
 
 same_prediction(bloom_lib,
                 bloom_pred,
+                model,
                 method,
                 theta)
 

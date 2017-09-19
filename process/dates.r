@@ -1,8 +1,5 @@
 #!/usr/bin/Rscript
-date2serial <- function( date_string )
-    return(
-        as.numeric(as.POSIXlt(as.Date(date_string)))/86400 + 719529
-    )
+source( "helpers/helper.r" )
 
 lib_start  <- date2serial( "2008-01-01" )
 lib_end    <- date2serial( "2009-12-31" )

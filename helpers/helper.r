@@ -1,5 +1,51 @@
 library( zoo )
 
+get_blooms   <- function( df, threshold, ran )
+{
+    xtend       <- function(n) return( (-17:17) + n )
+    
+    ## Find the bloom rows
+    bloom_rows <- which( df$chl > threshold )
+
+    ## Using the rows, find bloom days
+    bloom_days <- df$serial_day[bloom_rows]
+
+    ## Extend the bloom days one week in both directions
+    bloom_days <- unique( as.vector( sapply(bloom_days, xtend ) ) )
+
+    ## Restrict the data frame to the above mentioned bloom days
+    bloom_df   <- df[ df$serial_day %in% bloom_days, ]
+    rownames( bloom_df ) <- 1:nrow(bloom_df)
+
+    ## Restrict to the desired date range
+    bloom_df <- bloom_df[ range_indices( bloom_df, ran ), ]
+    
+    return( bloom_df )
+}
+
+date2serial <- function( date_string )
+    return(
+        as.numeric(as.POSIXlt(as.Date(date_string)))/86400 + 719529
+    )
+
+serial2date <- function( serial_day )
+    return(
+        as.Date(serial_day - 719529, origin = "1970-01-01") 
+    )
+
+## ## Tests, if u wanna use them
+## ex_date <- "2008-02-29"
+## print( ex_date )
+## ex_day <- date2serial( ex_date ) 
+## print( ex_day )
+## rec_date <- serial2date( ex_day )
+## print( rec_date )
+## rec_day <- date2serial( rec_date )
+## print( rec_day )
+
+
+
+
 ## Gives indices of the rows of df that have dates between dt1 and dt2
 range_indices <- function( df, ran )
     return(
