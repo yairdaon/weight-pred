@@ -5,4 +5,6 @@ tmp.r
 *~
 *.jpg
 plots/*
+
 paper/*
+!paper/paper.tex

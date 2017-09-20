@@ -1,0 +1,186 @@
+\documentclass[fleqn,10pt]{wlscirep}
+\title{Scientific Reports Title to see here (20 words or less)}
+
+\author[1,*]{Yair Daon}
+\author[2]{Hao Ye}
+\author[3]{George Sugihara}
+\affil[1]{NYU, Courant Institute of Mathematical Sciences, New York, NY 10012 USA}
+\affil[2]{University of California San Diego, Scripps Institution of Oceanography, La Jolla, CA, postcode, country}
+
+\affil[*]{yair.daon@gmail.com}
+
+\affil[+]{these authors contributed equally to this work}
+
+%\keywords{Keyword1, Keyword2, Keyword3}
+
+\begin{abstract}
+  We explore the change in prediction skill made by weighting 
+\end{abstract}
+\begin{document}
+
+\flushbottom
+\maketitle
+% * <john.hammersley@gmail.com> 2015-02-09T12:07:31.197Z:
+%
+%  Click the title above to edit the author information and abstract
+%
+\thispagestyle{empty}
+
+\noindent Please note: Abbreviations should be introduced at the first
+mention in the main text – no abbreviations lists. Suggested structure
+of main text (not enforced) is provided below.
+
+\section*{Introduction}
+Nonlinear prediciton using S-maps and simplex projection are by now an
+establised set of techniques used for analyzing natural systems.
+
+
+We introduce a measure of prediction uncertainty for the S-map. We are
+given one or several time series which we use to reconstruct an $E$
+dimensional attractor. Denote the state on the attractor
+$\mathbf{x}^{(t)} = (x_1^{(t)},...,x_E^{(t)})$ with $t=1,...,T$. In
+the univariate case we take time lags of the same time series, so
+$\mathbf{(t)} = (x^{(t)},...,x^{(t-E+1)})$. For every $t$, we are also
+given an observation $y^{(t)}$. Note that in many cases, we may want
+to predict the time evolution of (say) the first coordinate and then
+$y^{(t)} := x_1^{(t-1)}$. The S-map prediction for a new $\mathbf{x}$
+with a given nonlinearity parameter $\theta$ is found by first solving
+the (local) least squares problem for $\beta$:
+\begin{equation}
+  \beta := \arg \min_{\hat{\beta}} \|W(X \hat{\beta} - \mathbf{y}) \|_2^2,
+\end{equation}
+with
+\begin{equation*}
+  X =
+  \begin{bmatrix}
+    -& -& -& \mathbf{x}^{(1)} & - & - & - \\
+     &  &  &  \vdots         &   &   &   \\
+    -& -& -& \mathbf{x}^{(T)} & - & - & - \\    
+  \end{bmatrix},
+  \mathbf{y} =
+  \begin{bmatrix}
+    y^{(1)} \\
+    \vdots \\
+    y^{(T)}
+  \end{bmatrix}
+  \text{ and } W := diag( w_1,...,w_T), w_t: =\exp( -\theta \| \mathbf{x} - \mathbf{x}^{(t)}\| )
+\end{equation*}
+Given $\beta$, we predict $y = \beta' \mathbf{x} = \sum_{i=1}^E
+\beta_i x_i$. The novel uncertainty measure we intruduce is simply
+defined as
+\begin{equation}\label{eq:uncertainty}
+  \text{Uncertainty}(\mathbf{x}) := \sum_{t=1}^T w_t (y - y^{(t)})^2
+  \bigg / \sum_{t=1}^T w_t = \sum_{t=1}^T w_t (\beta' \mathbf{x} -
+  y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
+\end{equation}
+This is in contrast to the similar \emph{fitting error} that we found
+insufficient
+\begin{equation*}
+\text{Fitting Error}(\mathbf{x}) := \sum_{t=1}^T w_t ( \beta'
+\mathbf{x}^{(t)} - y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
+\end{equation*}
+The former represents the divergence in trajectories of the time
+series, whereas the latter merely represents a fitting error, hence
+underestimating the prediction uncertainty associated with
+$\mathbf{x}$.
+%% The Introduction section, of referenced
+%% text\cite{Figueredo:2009dg} expands on the background of the work
+%% (some overlap with the Abstract is acceptable). The introduction
+%% should not include subheadings.
+
+\section*{Results}
+Using the uncertainty measure described in \eqref{eq:uncertainty} we
+approach the problem of predicting Chlorophyll abundance (denoted Chl)
+in the waters of southern California. For a thorough introduction, see
+\cite{that paper}. It was found that six variables are causally
+related to the dynamics of Chl. We consider models that contain the
+Chl data at the time of observation, denoted Chl(t) and three other
+variables that may or may not be lagged. We take lags of one or two
+weeks so we have $6 \cdot 3 + 2 = 20$ variables to choose --- lags of
+0,1, or 2 weeks for the environmental variables plus lag of 1 or 2
+weeks Chl. Since the embedding dimension was found to be $E=4$, we
+have $\binom{20}{3} = 1140$ possible models to choose from. For each
+prediction time, we can choose a fraction of the least uncertain (most
+confident) models to predict and average these predictions.
+
+
+\subsection*{Subsection}
+
+Example text under a subsection. Bulleted lists may be used where
+appropriate, e.g.
+
+\begin{itemize}
+\item First item
+\item Second item
+\end{itemize}
+
+\subsubsection*{Third-level section}
+ 
+Topical subheadings are allowed.
+
+\section*{Discussion}
+
+The Discussion should be succinct and must not contain subheadings.
+
+\section*{Methods}
+
+Topical subheadings are allowed. Authors must ensure that their
+Methods section includes adequate experimental and characterization
+data necessary for others in the field to reproduce their work.
+
+\bibliography{sample}
+
+\noindent LaTeX formats citations and references automatically using
+the bibliography records in your .bib file, which you can edit via the
+project menu. Use the cite command for an inline citation, e.g.
+\cite{Figueredo:2009dg}.
+
+\section*{Acknowledgements (not compulsory)}
+
+Acknowledgements should be brief, and should not include thanks to
+anonymous referees and editors, or effusive comments. Grant or
+contribution numbers may be acknowledged.
+
+\section*{Author contributions statement}
+
+Must include all authors, identified by initials, for example:
+A.A. conceived the experiment(s), A.A. and B.A. conducted the
+experiment(s), C.A. and D.A. analysed the results.  All authors
+reviewed the manuscript.
+
+\section*{Additional information}
+
+To include, in this order: \textbf{Accession codes} (where
+applicable); \textbf{Competing financial interests} (mandatory
+statement).
+
+The corresponding author is responsible for submitting a
+\href{http://www.nature.com/srep/policies/index.html#competing}{competing
+  financial interests statement} on behalf of all authors of the
+paper. This statement must be included in the submitted article file.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{stream}
+\caption{Legend (350 words max). Example legend text.}
+\label{fig:stream}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Condition & n & p \\
+\hline
+A & 5 & 0.1 \\
+\hline
+B & 10 & 0.01 \\
+\hline
+\end{tabular}
+\caption{\label{tab:example}Legend (350 words max). Example legend text.}
+\end{table}
+
+Figures and tables can be referenced in LaTeX using the ref command,
+e.g. Figure \ref{fig:stream} and Table \ref{tab:example}.
+
+\end{document}
