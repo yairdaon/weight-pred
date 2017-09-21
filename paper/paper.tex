@@ -1,11 +1,14 @@
 \documentclass[fleqn,10pt]{wlscirep}
-\title{Scientific Reports Title to see here (20 words or less)}
+\title{Improved Predictions Using Model Uncertainty}
 
+\author[2]{John McGowan}
 \author[1,*]{Yair Daon}
 \author[2]{Hao Ye}
-\author[3]{George Sugihara}
+\author[2]{Melissa Carter}
+\author[2]{George Sugihara}
+
 \affil[1]{NYU, Courant Institute of Mathematical Sciences, New York, NY 10012 USA}
-\affil[2]{University of California San Diego, Scripps Institution of Oceanography, La Jolla, CA, postcode, country}
+\affil[2]{University of California San Diego, Scripps Institution of Oceanography, La Jolla, CA 92037, USA}
 
 \affil[*]{yair.daon@gmail.com}
 
@@ -14,138 +17,194 @@
 %\keywords{Keyword1, Keyword2, Keyword3}
 
 \begin{abstract}
-  We explore the change in prediction skill made by weighting 
+  Any method that hopes to make predictions should also be aware of
+  its limitations --- i.e. how much it is uncertain of its ability to
+  make accurate predictions. We use the same method of predictios but
+  with different variables to make predictions of abundance of
+  Chlorophyll in the pacific ocean by southern California. We suggest
+  a novel method for estimating prediction uncertainty and use it to
+  rank and weight the predictors. We see good prediction skill in the
+  case where algae bloom events do not occur.
 \end{abstract}
+
+\newcommand{\un}{\text{Uncertainty}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\pred}{\mathbf{P}}
+
 \begin{document}
 
 \flushbottom
 \maketitle
-% * <john.hammersley@gmail.com> 2015-02-09T12:07:31.197Z:
-%
-%  Click the title above to edit the author information and abstract
-%
+
 \thispagestyle{empty}
 
-\noindent Please note: Abbreviations should be introduced at the first
-mention in the main text – no abbreviations lists. Suggested structure
-of main text (not enforced) is provided below.
+\section{Introduction}
+Nonlinear prediciton using S-maps \cite{Smaps} and simplex projection
+\cite{simplex} are by now an establised set of techniques used for
+analyzing natural systems. The basic idea is simple: first,
+reconstruct an attractor manifold for the underlying dynamical system,
+using various (potentially time-delayed) variables, both biotic and
+a-biotic. A prediction of some variable at some state is made by
+interpolating a the value of said variable using neighbouring points
+on the reconstructed manifold, either by averaging (simplex
+projection) or by employing a \emph{local} linear model (S-maps).
 
-\section*{Introduction}
-Nonlinear prediciton using S-maps and simplex projection are by now an
-establised set of techniques used for analyzing natural systems.
+Choosing different variables to reconstruct the attractor amounts to a
+coordinate change --- a deformation of the manifold which may involve
+stretching, skewing, bending, reflecting of the ambient space. We
+characterize the quality of a specific choice of coordinates as the
+prediction uncertainty dictated by divergence of trajectories on the
+reconstructed manifold. We then use this measure of uncertainty to
+choose the best models in every state to make predictions. Details may
+be found in section \ref{section:methods}.
 
+Using the uncertainty measure described in \eqref{eq:uncertainty} we
+approach the problem of predicting Chlorophyll abundance (denoted Chl)
+in the waters of southern California. For a thorough introduction, see
+\cite{AlgaeBloom}.
 
+\section{Results}\label{section:results}
+ It was found in \cite{AlgaeBloom} that six variables are causally
+ related to the dynamics of Chl. We consider models that contain the
+ Chl data at the time of observation, denoted $Chl(t)$ and three other
+ variables that may or may not be lagged. We take lags of one or two
+ weeks so we have $6 \cdot 3 + 2 = 20$ variables to choose --- lags of
+ 0,1, or 2 weeks for the six environmental variables plus lag of 1 or
+ 2 weeks Chl. Since the embedding dimension was found to be $E=4$, we
+ have $n := \binom{20}{3} = 1140$ possible models to choose from. For each
+ prediction time, we average a fraction of the least uncertain
+ (most confident) models to predict and average these predictions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\linewidth]{../plots/exp_time_series_oos.pdf}
+\includegraphics[width=0.4\linewidth]{../plots/exp_weighted_predictions_oos.pdf}
+\caption{Weighting predictors by $\exp \left ( -\un (\x) \right )$}
+\label{fig:exp}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+\includegraphics[width=0.4\linewidth]{../plots/precision_time_series_oos.pdf}
+\includegraphics[width=0.4\linewidth]{../plots/precision_weighted_predictions_oos.pdf}
+\caption{Weighting predictors by $1 / \un (\x)$}
+\label{fig:prec}
+\end{figure}
+
+It is also interesting to note that the sum of prediction uncertainty
+of all $n:=\binom{20}{3}$ models is strongly correlated to Chl levels, as
+can be seen in figure \ref{fig:var chl}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\linewidth]{../plots/var_chl_oos.pdf}
+\caption{Perhaps surprisingly, uncertainty seems to be well correlated
+  with the abundance of Chlorophyll ($\rho = 0.7$).}
+\label{fig:var chl}
+\end{figure}
+
+\section{Discussion}
+We show there is much to gain by using different variables in S-maps
+according to the level of uncertainty each model has. Considering the
+Chl abundance in the pacific ocean near southern California,
+prediciton skill is high in days where algae blooms do not occur. This
+goes to show that there is a lot of predictability in the
+phytoplanktons abundance but also that a more detailed study is
+required to understand algae blooms (e.g. study by species abundance,
+as opposed to Chl abundance).
+
+\section{Methods}\label{section:methods}
 We introduce a measure of prediction uncertainty for the S-map. We are
 given one or several time series which we use to reconstruct an $E$
-dimensional attractor. Denote the state on the attractor
-$\mathbf{x}^{(t)} = (x_1^{(t)},...,x_E^{(t)})$ with $t=1,...,T$. In
-the univariate case we take time lags of the same time series, so
-$\mathbf{(t)} = (x^{(t)},...,x^{(t-E+1)})$. For every $t$, we are also
-given an observation $y^{(t)}$. Note that in many cases, we may want
-to predict the time evolution of (say) the first coordinate and then
-$y^{(t)} := x_1^{(t-1)}$. The S-map prediction for a new $\mathbf{x}$
-with a given nonlinearity parameter $\theta$ is found by first solving
-the (local) least squares problem for $\beta$:
+dimensional attractor. Denote the state on the attractor $\x^{(t)} =
+(x_1^{(t)},...,x_E^{(t)})$ with $t=1,...,T$. In the univariate case we
+take time lags of the same time series, so $\x^{(t)} =
+(x^{(t)},...,x^{(t-E+1)})$. For every $t$, we are also given an
+observation $y^{(t)}$. Note that in many cases, we may want to predict
+the time evolution of (say) the first coordinate and then $y^{(t)} :=
+x_1^{(t-1)}$. The S-map prediction for a new $\x$ with a given
+nonlinearity parameter $\theta$ is found by first solving the (local)
+least squares problem for $\beta$:
 \begin{equation}
-  \beta := \arg \min_{\hat{\beta}} \|W(X \hat{\beta} - \mathbf{y}) \|_2^2,
+  \beta = \beta(\x) := \arg \min_{\hat{\beta}} \|W(X \hat{\beta} - \mathbf{y}) \|_2^2,
 \end{equation}
 with
 \begin{equation*}
   X =
   \begin{bmatrix}
-    -& -& -& \mathbf{x}^{(1)} & - & - & - \\
-     &  &  &  \vdots         &   &   &   \\
-    -& -& -& \mathbf{x}^{(T)} & - & - & - \\    
+    \rule[.5ex]{3.5em}{0.4pt} & \x^{(1)} & \rule[.5ex]{3.5em}{0.4pt} \\
+                              &  \vdots         &                 \\
+    \rule[.5ex]{3.5em}{0.4pt} & \x^{(T)} & \rule[.5ex]{3.5em}{0.4pt} \\
   \end{bmatrix},
   \mathbf{y} =
   \begin{bmatrix}
     y^{(1)} \\
     \vdots \\
     y^{(T)}
-  \end{bmatrix}
-  \text{ and } W := diag( w_1,...,w_T), w_t: =\exp( -\theta \| \mathbf{x} - \mathbf{x}^{(t)}\| )
+  \end{bmatrix},
+  W := diag( w_1,...,w_T)  \text{ and } w_t: =\exp( -\theta \| \x - \x^{(t)}\| ).
 \end{equation*}
-Given $\beta$, we predict $y = \beta' \mathbf{x} = \sum_{i=1}^E
-\beta_i x_i$. The novel uncertainty measure we intruduce is simply
-defined as
+Having calculated $\beta$, we predict $y = \beta' \x = \sum_{i=1}^E \beta_i
+x_i$. The novel uncertainty measure we intruduce is defined as
 \begin{equation}\label{eq:uncertainty}
-  \text{Uncertainty}(\mathbf{x}) := \sum_{t=1}^T w_t (y - y^{(t)})^2
-  \bigg / \sum_{t=1}^T w_t = \sum_{t=1}^T w_t (\beta' \mathbf{x} -
+  \un (\x) := \sum_{t=1}^T w_t (y - y^{(t)})^2
+  \bigg / \sum_{t=1}^T w_t = \sum_{t=1}^T w_t (\beta' \x -
   y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
 \end{equation}
 This is in contrast to the similar \emph{fitting error} that we found
 insufficient
 \begin{equation*}
-\text{Fitting Error}(\mathbf{x}) := \sum_{t=1}^T w_t ( \beta'
-\mathbf{x}^{(t)} - y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
+\text{Fitting Error}(\x) := \sum_{t=1}^T w_t ( \beta'
+\x^{(t)} - y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
 \end{equation*}
 The former represents the divergence in trajectories of the time
 series, whereas the latter merely represents a fitting error, hence
 underestimating the prediction uncertainty associated with
-$\mathbf{x}$.
-%% The Introduction section, of referenced
-%% text\cite{Figueredo:2009dg} expands on the background of the work
-%% (some overlap with the Abstract is acceptable). The introduction
-%% should not include subheadings.
+$\x$.
 
-\section*{Results}
-Using the uncertainty measure described in \eqref{eq:uncertainty} we
-approach the problem of predicting Chlorophyll abundance (denoted Chl)
-in the waters of southern California. For a thorough introduction, see
-\cite{that paper}. It was found that six variables are causally
-related to the dynamics of Chl. We consider models that contain the
-Chl data at the time of observation, denoted Chl(t) and three other
-variables that may or may not be lagged. We take lags of one or two
-weeks so we have $6 \cdot 3 + 2 = 20$ variables to choose --- lags of
-0,1, or 2 weeks for the environmental variables plus lag of 1 or 2
-weeks Chl. Since the embedding dimension was found to be $E=4$, we
-have $\binom{20}{3} = 1140$ possible models to choose from. For each
-prediction time, we can choose a fraction of the least uncertain (most
-confident) models to predict and average these predictions.
+Assume we consider a fixed $\x$ and are given a set of predictors
+$\pred_i, i =1,...,n$ with associated uncertainties $\un_i(\x)$ and
+assume these are increasing (so better predictors have smaller
+indices). We can choose a quantile $0 < q \leq 1$ and average these
+predictors with uncertainty in the $q$th quantile for prediction, so
+we use only the $q$ fraction of most confident predictors. We can use
+the uncertainties as weights. For example, we can take the
+exponentially-weighted predictor
+\begin{equation*}
+  \pred_{\text{Exp}} (\x ) := \sum_{i=1}^{nq} \exp(-\un_i(\x)) \pred_i(\x) / \sum_{i=1}^{nq} \exp(-\un_i(\x)).
+\end{equation*}
+ This weighting scheme was used to generate figure \ref{fig:exp}. We
+ may also weight by the inverse of the uncertainty, resulting in the
+ following weighting scheme:
+\begin{equation*}
+  \pred_{\text{Precision}} (\x ) := \sum_{i=1}^{nq} \frac{1}{\un_i(\x)} \pred_i(\x) / \sum_{i=1}^{nq} \frac{1}{\un_i(\x)}.
+\end{equation*}
+This weighting scheme was used to generate figure \ref{fig:prec}.
 
+It is crucial to note that $\x$ represent an abstract state on the
+attractor manifold. In this respect, a predictor $\pred_i$ also
+involves a specific set of coordinates used for prediction.
 
-\subsection*{Subsection}
+The results in section \ref{section:results} can be generated by
+anyone who has the original data, which is, unfortunately,
+proprietary. Documented code can be downloaded from
+\url{http://github.com/yairdaon/algae}. Given the data, one should
+type \emph{make everything} in the main directory to generate all the
+plots. This requires the package rEDM version 0.6.0 or higher.
 
-Example text under a subsection. Bulleted lists may be used where
-appropriate, e.g.
-
-\begin{itemize}
-\item First item
-\item Second item
-\end{itemize}
-
-\subsubsection*{Third-level section}
- 
-Topical subheadings are allowed.
-
-\section*{Discussion}
-
-The Discussion should be succinct and must not contain subheadings.
-
-\section*{Methods}
-
-Topical subheadings are allowed. Authors must ensure that their
-Methods section includes adequate experimental and characterization
-data necessary for others in the field to reproduce their work.
-
-\bibliography{sample}
-
-\noindent LaTeX formats citations and references automatically using
-the bibliography records in your .bib file, which you can edit via the
-project menu. Use the cite command for an inline citation, e.g.
-\cite{Figueredo:2009dg}.
+\bibliography{bibi}
 
 \section*{Acknowledgements (not compulsory)}
-
-Acknowledgements should be brief, and should not include thanks to
-anonymous referees and editors, or effusive comments. Grant or
-contribution numbers may be acknowledged.
+This work is the result of a summer internship taken by Y.D. with the
+research group of G.S. and was a part of the NSF Mathematical Sciences
+Graduate Intenship Program. This work would not have been possible
+without their generous support.
 
 \section*{Author contributions statement}
 
 Must include all authors, identified by initials, for example:
 A.A. conceived the experiment(s), A.A. and B.A. conducted the
-experiment(s), C.A. and D.A. analysed the results.  All authors
+experiment(s), C.A. and D.A. analysed the results. All authors
 reviewed the manuscript.
 
 \section*{Additional information}
@@ -158,29 +217,5 @@ The corresponding author is responsible for submitting a
 \href{http://www.nature.com/srep/policies/index.html#competing}{competing
   financial interests statement} on behalf of all authors of the
 paper. This statement must be included in the submitted article file.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{stream}
-\caption{Legend (350 words max). Example legend text.}
-\label{fig:stream}
-\end{figure}
-
-\begin{table}[ht]
-\centering
-\begin{tabular}{|l|l|l|}
-\hline
-Condition & n & p \\
-\hline
-A & 5 & 0.1 \\
-\hline
-B & 10 & 0.01 \\
-\hline
-\end{tabular}
-\caption{\label{tab:example}Legend (350 words max). Example legend text.}
-\end{table}
-
-Figures and tables can be referenced in LaTeX using the ref command,
-e.g. Figure \ref{fig:stream} and Table \ref{tab:example}.
 
 \end{document}

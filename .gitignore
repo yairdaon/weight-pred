@@ -8,3 +8,4 @@ plots/*
 
 paper/*
 !paper/paper.tex
+!paper/bibi.bib
