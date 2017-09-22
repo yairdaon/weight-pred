@@ -1,5 +1,6 @@
 #!/usr/bin/Rscript
 library(rEDM)
+source( "helpers/helper.r" )
 
 args <- commandArgs(trailingOnly = TRUE)
 if( length(args) == 0 ) {
@@ -130,14 +131,22 @@ for( j in 1:2 )
     }
 }
 
+pred_dates <- serial2date(serial_day)
+if( length( pred_dates ) != length( chl_p1wk ) )
+    stop( paste0( length(pred_dates), " !=  ", length(chl_p1wk) ) )
+
 pdf( paste0("plots/exp_time_series_", tolower(xtension), ".pdf") )
-plot(chl_p1wk,
+plot(pred_dates,
+     chl_p1wk,
      type='l', 
      bty = "l",
      col = "black",
-     ylim = c(-1, 10)
+     ylim = c(-1, 10),
+     ylab = "Chlorophyll abundance",
+     xlab = "Time"
      )
-lines(predictions[1, ],
+lines(pred_dates,
+      predictions[1, ],
       col = "red")
 abline(norm_threshold,
        0,
@@ -149,15 +158,19 @@ legend("topleft",
        cex = 1.25,
        col = c( "black", "red", "green" ) )
 dev.off()
-
+                                          
 pdf( paste0("plots/precision_time_series_", tolower(xtension), ".pdf") )
-plot(chl_p1wk,
+plot(pred_dates,
+     chl_p1wk,
      type='l', 
      bty = "l",
      col = "black",
-     ylim = c(-1, 10)
+     ylim = c(-1, 10),
+     ylab = "Chlorophyll abundance",
+     xlab = "Time"
      )
-lines(predictions[2, ],
+lines(pred_dates,
+      predictions[2, ],
       col = "red")
 abline(norm_threshold,
        0,
@@ -169,3 +182,19 @@ legend("left",
        cex = 1.25,
        col = c( "black", "red", "green" ) )
 dev.off()
+
+
+load( paste0( "data/", tolower(xtension), "_serial_days.Rdata" ) )
+no_bloom_days <- bloom_or_not_days(data.frame(serial_day,chl),
+                                   norm_threshold,
+                                   pred_serial_days,
+                                   FALSE )
+ind <- serial_day %in% no_bloom_days
+print(paste0( "Exponential rho on     bloom days = ", cor(predictions[1,!ind],chl_p1wk[!ind], use="complete.obs" ) ) )
+print(paste0( "Precision   rho on     bloom days = ", cor(predictions[2,!ind],chl_p1wk[!ind], use="complete.obs" ) ) )
+print(paste0( "Exponential rho on non-bloom days = ", cor(predictions[1,ind], chl_p1wk[ind], use="complete.obs"  ) ) )
+print(paste0( "Precision   rho on non-bloom days = ", cor(predictions[2,ind], chl_p1wk[ind], use="complete.obs"  ) ) )
+print(paste0( "Exponential rho on all       days = ", cor(predictions[1,],    chl_p1wk, use="complete.obs"       ) ) )
+print(paste0( "Precision   rho on all       days = ", cor(predictions[2,],    chl_p1wk, use="complete.obs"       ) ) )
+
+

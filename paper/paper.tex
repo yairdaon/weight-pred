@@ -18,9 +18,9 @@
 
 \begin{abstract}
   Any method that hopes to make predictions should also be aware of
-  its limitations --- i.e. how much it is uncertain of its ability to
-  make accurate predictions. We use the same method of predictios but
-  with different variables to make predictions of abundance of
+  its limitations --- i.e. how much it is uncertain of its own ability
+  to make accurate predictions. We use the same method of predictios
+  but with different variables to make predictions of abundance of
   Chlorophyll in the pacific ocean by southern California. We suggest
   a novel method for estimating prediction uncertainty and use it to
   rank and weight the predictors. We see good prediction skill in the
@@ -41,17 +41,18 @@
 \section{Introduction}
 Nonlinear prediciton using S-maps \cite{Smaps} and simplex projection
 \cite{simplex} are by now an establised set of techniques used for
-analyzing natural systems. The basic idea is simple: first,
-reconstruct an attractor manifold for the underlying dynamical system,
-using various (potentially time-delayed) variables, both biotic and
-a-biotic. A prediction of some variable at some state is made by
-interpolating a the value of said variable using neighbouring points
-on the reconstructed manifold, either by averaging (simplex
-projection) or by employing a \emph{local} linear model (S-maps).
+analyzing natural systems \cite{Salmon,Influenza,Neurons}. The basic
+idea is simple: first, reconstruct an attractor manifold for the
+underlying dynamical system, using various (potentially time-lagged)
+variables, both biotic and a-biotic. A prediction of some variable at
+some state is made by interpolating the value of said variable using
+neighbouring points on the reconstructed manifold, either by averaging
+(simplex projection) or by employing a \emph{local} linear model
+(S-maps).
 
 Choosing different variables to reconstruct the attractor amounts to a
 coordinate change --- a deformation of the manifold which may involve
-stretching, skewing, bending, reflecting of the ambient space. We
+stretching, skewing, bending, and reflecting of the ambient space. We
 characterize the quality of a specific choice of coordinates as the
 prediction uncertainty dictated by divergence of trajectories on the
 reconstructed manifold. We then use this measure of uncertainty to
@@ -59,21 +60,26 @@ choose the best models in every state to make predictions. Details may
 be found in section \ref{section:methods}.
 
 Using the uncertainty measure described in \eqref{eq:uncertainty} we
-approach the problem of predicting Chlorophyll abundance (denoted Chl)
-in the waters of southern California. For a thorough introduction, see
+approach the problem of predicting Chlorophyll abundance in the seas
+of southern California. For a thorough introduction, see
 \cite{AlgaeBloom}.
 
 \section{Results}\label{section:results}
  It was found in \cite{AlgaeBloom} that six variables are causally
- related to the dynamics of Chl. We consider models that contain the
- Chl data at the time of observation, denoted $Chl(t)$ and three other
- variables that may or may not be lagged. We take lags of one or two
+ related to the dynamics of Chlorophyll in the seas of southern
+ California --- Silicate, Nitrate, Nitrite, wind speed, water density
+ and water temperature --- though the exact specifications of these is
+ irrelevant. We make predictions using different sets (``models'') of
+ four (as shown in \ref{AlgaeBloom}) potentially time-lagged
+ variables, of which Chlorophyll abundance is always a member. An
+ example set of variables may be Chlorophyll(0), Silicate(0),
+ Silicate(-1) and density(0). The number in parentheses represents the
+ time lag of the corresponding variable. We take lags of one or two
  weeks so we have $6 \cdot 3 + 2 = 20$ variables to choose --- lags of
  0,1, or 2 weeks for the six environmental variables plus lag of 1 or
- 2 weeks Chl. Since the embedding dimension was found to be $E=4$, we
- have $n := \binom{20}{3} = 1140$ possible models to choose from. For each
- prediction time, we average a fraction of the least uncertain
- (most confident) models to predict and average these predictions.
+ 2 for weeks Chlorophyll. This amounts to $n := \binom{20}{3} = 1140$
+ sets of variables (``models'') to choose from. For each prediction time, we
+ average a fraction of the least uncertain (most confident) models.
 
 \begin{figure}[ht]
 \centering
@@ -92,7 +98,7 @@ in the waters of southern California. For a thorough introduction, see
 \end{figure}
 
 It is also interesting to note that the sum of prediction uncertainty
-of all $n:=\binom{20}{3}$ models is strongly correlated to Chl levels, as
+of all $n:=\binom{20}{3}$ models is strongly correlated to Chlorophyll levels, as
 can be seen in figure \ref{fig:var chl}.
 
 \begin{figure}[ht]
@@ -106,12 +112,12 @@ can be seen in figure \ref{fig:var chl}.
 \section{Discussion}
 We show there is much to gain by using different variables in S-maps
 according to the level of uncertainty each model has. Considering the
-Chl abundance in the pacific ocean near southern California,
+Chlorophyll abundance in the pacific ocean near southern California,
 prediciton skill is high in days where algae blooms do not occur. This
 goes to show that there is a lot of predictability in the
 phytoplanktons abundance but also that a more detailed study is
 required to understand algae blooms (e.g. study by species abundance,
-as opposed to Chl abundance).
+as opposed to Chlorophyll abundance).
 
 \section{Methods}\label{section:methods}
 We introduce a measure of prediction uncertainty for the S-map. We are
@@ -195,13 +201,15 @@ plots. This requires the package rEDM version 0.6.0 or higher.
 \bibliography{bibi}
 
 \section*{Acknowledgements (not compulsory)}
-This work is the result of a summer internship taken by Y.D. with the
-research group of G.S. and was a part of the NSF Mathematical Sciences
-Graduate Intenship Program. This work would not have been possible
-without their generous support.
+This research was supported in part by an appointment with the NSF
+Mathematical Sciences Summer Internship Program sponsored by the
+National Science Foundation, Division of Mathematical Sciences
+(DMS). This program is administered by the Oak Ridge Institute for
+Science and Education (ORISE) through an interagency agreement between
+the U.S. Department of Energy (DOE) and NSF. ORISE is managed by ORAU
+under DOE contract number DE-SC0014664.
 
 \section*{Author contributions statement}
-
 Must include all authors, identified by initials, for example:
 A.A. conceived the experiment(s), A.A. and B.A. conducted the
 experiment(s), C.A. and D.A. analysed the results. All authors

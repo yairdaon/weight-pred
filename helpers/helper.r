@@ -1,26 +1,76 @@
 library( zoo )
 
-get_blooms   <- function( df, threshold, ran )
+bloom_or_not_days <- function(df,
+                              threshold,
+                              ran,
+                              bloom = TRUE)
 {
-    xtend       <- function(n) return( (-17:17) + n )
+    ## Used later...
+    xtend       <- function(n) return( (-14:14) + n )
+
+    ## Get serial days and chlorophyll levels, restricted according to
+    ## ran.
+    ind <- range_indices(df,ran)
+    serial_day <- df$serial_day[ ind ]
+    chl        <- df$chl       [ ind ]
     
-    ## Find the bloom rows
-    bloom_rows <- which( df$chl > threshold )
+    ## Find the days above threshold.
+    bloom_days <- serial_day[ chl > threshold ]
 
-    ## Using the rows, find bloom days
-    bloom_days <- df$serial_day[bloom_rows]
+    ## Extend the bloom days two weeks in both directions
+    bloom_days <- unique( as.vector( sapply(bloom_days,xtend) ) )
 
-    ## Extend the bloom days one week in both directions
-    bloom_days <- unique( as.vector( sapply(bloom_days, xtend ) ) )
+    ## Keep only the days that are in the data frame
+    bloom_days <- bloom_days[ bloom_days %in% serial_day ]
 
+    ## All the rest, by definition.
+    no_bloom_days <- serial_day[ !(serial_day %in% bloom_days) ] 
+    
+    if ( length(bloom_days) + length(no_bloom_days) != length(serial_day) )
+        stop( paste0( length(bloom_days), " + ", length(no_bloom_days), " != ", length(serial_day) ) ) 
+             
+    if( bloom )
+        return( bloom_days )
+    else
+        return( no_bloom_days )
+}
+
+
+get_blooms <- function(df,
+                       threshold,
+                       ran)
+{
+
+    bloom_days <- bloom_or_not_days(df,
+                                    threshold,
+                                    ran,
+                                    TRUE)
+
+    
     ## Restrict the data frame to the above mentioned bloom days
-    bloom_df   <- df[ df$serial_day %in% bloom_days, ]
+    bloom_df <- df[ df$serial_day %in% bloom_days, ]
     rownames( bloom_df ) <- 1:nrow(bloom_df)
-
+    
     ## Restrict to the desired date range
     bloom_df <- bloom_df[ range_indices( bloom_df, ran ), ]
     
     return( bloom_df )
+}
+
+get_no_blooms <- function(df,
+                          threshold,
+                          ran)
+{
+    no_bloom_days <- bloom_or_not_days(df,
+                                       threshold,
+                                       ran,
+                                       FALSE)
+    
+    ## Restrict the data frame to the non-bloom days
+    no_bloom_df <- df[ df$serial_day %in% no_bloom_days, ]
+    rownames( no_bloom_df ) <- 1:nrow(no_bloom_df)
+
+    return( no_bloom_df )
 }
 
 date2serial <- function( date_string )

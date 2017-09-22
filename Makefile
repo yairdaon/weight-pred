@@ -18,8 +18,6 @@ loocv:
 	make plots/var_chl_loocv.pdf
 
 leftover:
-	make data/leftover_predictions_bloom_loocv.Rdata
-	./analysis/sum.r bloom
 	make data/leftover_predictions_full_loocv.Rdata
 	./analysis/sum.r full
 
