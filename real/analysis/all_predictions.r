@@ -2,6 +2,9 @@
 library(rEDM)
 source( "helpers/helper.r" )
 
+## Compares the "best" predictor from the paper on all four possible
+## combinations of bloom / non-bloom for library /prediction data frames.
+
 same_prediction <- function(lib_df,
                             pred_df,
                             model,

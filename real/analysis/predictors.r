@@ -2,6 +2,11 @@
 library(rEDM)
 source( "helpers/helper.r" )
 
+
+## Uses weighted predictors. Creates plots of weighted predictors
+## performance by quantile of predictors taken. Creates plots of the
+## actual prediction a weighted predictor makes.
+
 args <- commandArgs(trailingOnly = TRUE)
 if( length(args) == 0 ) {
     xtension <- "Test"
@@ -78,7 +83,7 @@ plot(probs,
      type = "l",
      xlab = "Quantile",
      ylab = "Rho",
-     main = paste0( xtension, " skill per quantile for exp-weights" )
+     ## main = paste0( xtension, " skill per quantile for exp-weights" )
      )
 dev.off()
 
@@ -88,7 +93,7 @@ plot(probs,
      type = "l",
      xlab = "Quantile",
      ylab = "Rho",
-     main = paste0( xtension, " skill per quantile for precision-weights" )
+     ## main = paste0( xtension, " skill per quantile for precision-weights" )
      )
 dev.off()
 
@@ -175,7 +180,7 @@ lines(pred_dates,
 abline(norm_threshold,
        0,
        col = "green" )
-legend("left",
+legend("topleft",
        legend = c( "True Chl", "Precision weighted", "95% threshold" ),
        lty = 1,
        bty = 'n',
@@ -183,12 +188,13 @@ legend("left",
        col = c( "black", "red", "green" ) )
 dev.off()
 
-
 load( paste0( "data/", tolower(xtension), "_serial_days.Rdata" ) )
+
 no_bloom_days <- bloom_or_not_days(data.frame(serial_day,chl),
                                    norm_threshold,
                                    pred_serial_days,
                                    FALSE )
+
 ind <- serial_day %in% no_bloom_days
 print(paste0( "Exponential rho on     bloom days = ", cor(predictions[1,!ind],chl_p1wk[!ind], use="complete.obs" ) ) )
 print(paste0( "Precision   rho on     bloom days = ", cor(predictions[2,!ind],chl_p1wk[!ind], use="complete.obs" ) ) )

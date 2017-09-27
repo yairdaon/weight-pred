@@ -19,15 +19,16 @@
 \begin{abstract}
   Any method that hopes to make predictions should also be aware of
   its limitations --- i.e. how much it is uncertain of its own ability
-  to make accurate predictions. We use the same method of predictios
-  but with different variables to make predictions of abundance of
-  Chlorophyll in the pacific ocean by southern California. We suggest
-  a novel method for estimating prediction uncertainty and use it to
-  rank and weight the predictors. We see good prediction skill in the
-  case where algae bloom events do not occur.
+  to make accurate predictions. We use an established method (S-maps)
+  for nonlinear prediction and define a measure of its prediction
+  uncertainty. We use this measure of uncertainty to rank and average
+  different sets of variables used to make predictios of abundance of
+  Chlorophyll near the coasts of southern California. We observe good
+  prediction skill in most days and note that when most sets of
+  variables have high prediction uncertainty, extreme events occur.
 \end{abstract}
 
-\newcommand{\un}{\text{Uncertainty}}
+\newcommand{\un}{\text{Var}}
 \newcommand{\x}{\mathbf{x}}
 \newcommand{\pred}{\mathbf{P}}
 
@@ -41,96 +42,123 @@
 \section{Introduction}
 Nonlinear prediciton using S-maps \cite{Smaps} and simplex projection
 \cite{simplex} are by now an establised set of techniques used for
-analyzing natural systems \cite{Salmon,Influenza,Neurons}. The basic
-idea is simple: first, reconstruct an attractor manifold for the
+analyzing natural systems \cite{Salmon,Influenza,Neurons}. The idea is
+simple: first, reconstruct an attractor manifold for (an assumed)
 underlying dynamical system, using various (potentially time-lagged)
-variables, both biotic and a-biotic. A prediction of some variable at
-some state is made by interpolating the value of said variable using
-neighbouring points on the reconstructed manifold, either by averaging
-(simplex projection) or by employing a \emph{local} linear model
-(S-maps).
+observables, both biotic and a-biotic. We denote the system's position
+on the attractor (i.e. its state) by $\omega$. A prediction of some
+observable at some state $\omega$ is made by interpolating the value of
+said observable using neighbouring states on the reconstructed
+manifold, either by averaging (simplex projection) or by employing a
+\emph{local} linear model (S-maps).
 
-Choosing different variables to reconstruct the attractor amounts to a
-coordinate change --- a deformation of the manifold which may involve
-stretching, skewing, bending, and reflecting of the ambient space. We
-characterize the quality of a specific choice of coordinates as the
-prediction uncertainty dictated by divergence of trajectories on the
-reconstructed manifold. We then use this measure of uncertainty to
-choose the best models in every state to make predictions. Details may
-be found in section \ref{section:methods}.
+Choosing different observables to reconstruct the attractor (represent
+the state) amounts to a coordinate change. Such coordinate change is a
+deformation of the manifold which may involve stretching, skewing,
+bending, and reflecting in the ambient space. We characterize the
+quality of a specific choice of coordinates as the prediction
+uncertainty, defined by the divergence of trajectories on the
+representation of the reconstructed manifold. We then use this measure
+of uncertainty to choose the best representations for each state to
+make predictions. Details may be found in section
+\ref{section:methods}.
 
-Using the uncertainty measure described in \eqref{eq:uncertainty} we
-approach the problem of predicting Chlorophyll abundance in the seas
-of southern California. For a thorough introduction, see
-\cite{AlgaeBloom}.
+Using the uncertainty measure outlined in \ref{section:methods} we
+approach the problem of predicting Chlorophyll abundance near the
+coasts of southern California. For a thorough introduction, see
+\cite{AlgaeBloom}. There is was found that six environmental
+observables are causally related to the dynamics of Chlorophyll near
+the coasts of southern California: Silicate, Nitrate, Nitrite, wind
+speed, water density and water temperature, though the exact
+specifications of these is irrelevant. following \cite{AlgaeBloom},
+predictions are made using different sets of four potentially
+time-lagged observables (different representations), of which
+Chlorophyll abundance is always a member. For example, a
+representation may be Chlorophyll(0), Silicate(0), Silicate(-1) and
+density(0), where the number in parentheses represents the time lag of
+the corresponding observable in weeks. We take lags of one or two
+weeks so we have $6 \cdot 3 + 2 = 20$ observables to choose from ---
+lags of 0,1, or 2 weeks for the six environmental observables plus lag
+of 1 or 2 for weeks Chlorophyll. This amounts to a total of
+$\binom{20}{3} = 1140$ sets of observables (representations) to choose
+from.
+
+For each prediction time, we average a fraction of the least uncertain
+(most confident) predictors, each uses a different representation to
+reconstruct the attractor manifold. We explore two different averaging
+schemes and compare their performance. The ultimate goal is predicting
+algae blooms --- events where Chlorophyll levels are in the top 5\% of
+all Chlorophyll observations.
 
 \section{Results}\label{section:results}
- It was found in \cite{AlgaeBloom} that six variables are causally
- related to the dynamics of Chlorophyll in the seas of southern
- California --- Silicate, Nitrate, Nitrite, wind speed, water density
- and water temperature --- though the exact specifications of these is
- irrelevant. We make predictions using different sets (``models'') of
- four (as shown in \ref{AlgaeBloom}) potentially time-lagged
- variables, of which Chlorophyll abundance is always a member. An
- example set of variables may be Chlorophyll(0), Silicate(0),
- Silicate(-1) and density(0). The number in parentheses represents the
- time lag of the corresponding variable. We take lags of one or two
- weeks so we have $6 \cdot 3 + 2 = 20$ variables to choose --- lags of
- 0,1, or 2 weeks for the six environmental variables plus lag of 1 or
- 2 for weeks Chlorophyll. This amounts to $n := \binom{20}{3} = 1140$
- sets of variables (``models'') to choose from. For each prediction time, we
- average a fraction of the least uncertain (most confident) models.
+Performance on bloom days is not strong, but performance of either
+weighted predictor on non-bloom days gives $\rho = 0.54$ when
+calculated using leave-one-out cross validation over the entire data.
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.4\linewidth]{../plots/exp_time_series_oos.pdf}
-\includegraphics[width=0.4\linewidth]{../plots/exp_weighted_predictions_oos.pdf}
-\caption{Weighting predictors by $\exp \left ( -\un (\x) \right )$}
-\label{fig:exp}
-\end{figure}
-
-\begin{figure}[ht]
+\begin{figure}
   \centering
-\includegraphics[width=0.4\linewidth]{../plots/precision_time_series_oos.pdf}
-\includegraphics[width=0.4\linewidth]{../plots/precision_weighted_predictions_oos.pdf}
-\caption{Weighting predictors by $1 / \un (\x)$}
-\label{fig:prec}
+  \includegraphics[width=0.45\textwidth]{../plots/exp_time_series_oos.pdf}
+  \includegraphics[width=0.45\textwidth]{../plots/exp_weighted_predictions_oos.pdf}
+  \caption{Weighting predictors by $\exp \left ( -\un (\x) \right
+    )$. Left \textbf{(a)} observed and predicted Chlorophyll
+    abundance. Right \textbf{(b)} prediction skill for fraction of most
+    confident models averaged.}
+  \label{fig:exp}
 \end{figure}
 
-It is also interesting to note that the sum of prediction uncertainty
-of all $n:=\binom{20}{3}$ models is strongly correlated to Chlorophyll levels, as
-can be seen in figure \ref{fig:var chl}.
+\begin{figure}
+\centering
+  \includegraphics[width=0.45\textwidth]{../plots/precision_time_series_oos.pdf}
+  \includegraphics[width=0.45\textwidth]{../plots/precision_weighted_predictions_oos.pdf}
+  \caption{Weighting predictors by $1 \big / \un (\x)$. Left
+    \textbf{(a)} observed and predicted Chlorophyll abundance. Right
+    \textbf{(b)} prediction skill for fraction of most confident models
+    averaged.}
+  \label{fig:prec}
+\end{figure}
+
+It is interesting to note that the mean of the prediction uncertainties of
+all $n:=\binom{20}{3}$ models is strongly correlated to Chlorophyll
+levels ($\rho = 0.7$), as can be seen in figure \ref{fig:var chl}.
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.5\linewidth]{../plots/var_chl_oos.pdf}
+\includegraphics[width=0.5\textwidth]{../plots/var_chl_oos.pdf}
 \caption{Perhaps surprisingly, uncertainty seems to be well correlated
   with the abundance of Chlorophyll ($\rho = 0.7$).}
 \label{fig:var chl}
 \end{figure}
 
+Another interesting phenomenon is that the two weighting schemes give
+rise to almost identical predictions in \ref{fig:exp}.\textbf{a} and
+\ref{fig:prec}.\textbf{a} when using the fraction of most confident
+representations maximizing \ref{fig:exp}.\textbf{b} and
+\ref{fig:prec}.\textbf{b}, respectively.
+
 \section{Discussion}
-We show there is much to gain by using different variables in S-maps
-according to the level of uncertainty each model has. Considering the
-Chlorophyll abundance in the pacific ocean near southern California,
-prediciton skill is high in days where algae blooms do not occur. This
-goes to show that there is a lot of predictability in the
-phytoplanktons abundance but also that a more detailed study is
-required to understand algae blooms (e.g. study by species abundance,
-as opposed to Chlorophyll abundance).
+We showed there is a potential gain to be had by using different
+representations in S-maps according to the level of uncertainty each
+representation has in each time. Considering the Chlorophyll abundance
+in the pacific ocean near southern California, prediciton skill is
+high in days where algae blooms do not occur. This goes to show that
+there is some predictability in the phytoplanktons abundance but also
+that a more detailed study is required to understand algae blooms
+(e.g. study by species abundance, as opposed to Chlorophyll
+abundance).
 
 \section{Methods}\label{section:methods}
-We introduce a measure of prediction uncertainty for the S-map. We are
-given one or several time series which we use to reconstruct an $E$
-dimensional attractor. Denote the state on the attractor $\x^{(t)} =
-(x_1^{(t)},...,x_E^{(t)})$ with $t=1,...,T$. In the univariate case we
-take time lags of the same time series, so $\x^{(t)} =
-(x^{(t)},...,x^{(t-E+1)})$. For every $t$, we are also given an
-observation $y^{(t)}$. Note that in many cases, we may want to predict
-the time evolution of (say) the first coordinate and then $y^{(t)} :=
-x_1^{(t-1)}$. The S-map prediction for a new $\x$ with a given
-nonlinearity parameter $\theta$ is found by first solving the (local)
-least squares problem for $\beta$:
+For an $E$-dimensional attractor, denote a state on the attractor
+$\omega^{(t)}$. This state is abstract and never observed or known. The
+only access we have to $\omega^{(t)}$ via different $E$-dimensional
+representations $\x^{(t)} = \x(\omega^{(t)}) =
+(x_1^{(t)},...,x_E^{(t)})$. For example, we may take time lags of the
+same time series, so $\x^{(t)} = (x^{(t)},...,x^{(t-E+1)})$. For every
+$t$, we are also given an observation $y^{(t)}$. Note that in many
+cases, we may want to predict the time evolution of (say) the first
+coordinate and then $y^{(t)} := x_1^{(t-1)}$. The S-map prediction of
+$y$ given a representation $\x = \x(\omega)$ (we drop $\omega$ for
+convenience) and a nonlinearity parameter $\theta$ is found by first
+solving the (local) least squares problem for $\beta$:
 \begin{equation}
   \beta = \beta(\x) := \arg \min_{\hat{\beta}} \|W(X \hat{\beta} - \mathbf{y}) \|_2^2,
 \end{equation}
@@ -151,14 +179,14 @@ with
   W := diag( w_1,...,w_T)  \text{ and } w_t: =\exp( -\theta \| \x - \x^{(t)}\| ).
 \end{equation*}
 Having calculated $\beta$, we predict $y = \beta' \x = \sum_{i=1}^E \beta_i
-x_i$. The novel uncertainty measure we intruduce is defined as
+x_i$. The uncertainty measure we intruduce is defined as
 \begin{equation}\label{eq:uncertainty}
   \un (\x) := \sum_{t=1}^T w_t (y - y^{(t)})^2
   \bigg / \sum_{t=1}^T w_t = \sum_{t=1}^T w_t (\beta' \x -
   y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
 \end{equation}
 This is in contrast to the similar \emph{fitting error} that we found
-insufficient
+insufficient for our purposes
 \begin{equation*}
 \text{Fitting Error}(\x) := \sum_{t=1}^T w_t ( \beta'
 \x^{(t)} - y^{(t)})^2 \bigg / \sum_{t=1}^T w_t.
@@ -168,39 +196,39 @@ series, whereas the latter merely represents a fitting error, hence
 underestimating the prediction uncertainty associated with
 $\x$.
 
-Assume we consider a fixed $\x$ and are given a set of predictors
-$\pred_i, i =1,...,n$ with associated uncertainties $\un_i(\x)$ and
-assume these are increasing (so better predictors have smaller
-indices). We can choose a quantile $0 < q \leq 1$ and average these
-predictors with uncertainty in the $q$th quantile for prediction, so
-we use only the $q$ fraction of most confident predictors. We can use
-the uncertainties as weights. For example, we can take the
-exponentially-weighted predictor
+Assume we consider a fixed (unknown) state $\omega$ and are given a
+set of representations $\x_i, i =1,...,n$ (e.g. $n = \binom{20}{3}$ in
+our case) with associated predictions $y_i$ and uncertainties $\un_i =
+\un(\x_i)$ such that $\un_i$ are increasing. We can choose a quantile
+$0 < q \leq 1$ and average these predictors with uncertainty in the
+$q$th quantile for prediction, so we use only the $q$ fraction of most
+confident predictors and we can use the uncertainties to define
+averaging weights. For example, we can take the exponentially-weighted
+predictor
 \begin{equation*}
-  \pred_{\text{Exp}} (\x ) := \sum_{i=1}^{nq} \exp(-\un_i(\x)) \pred_i(\x) / \sum_{i=1}^{nq} \exp(-\un_i(\x)).
+  y_{\text{exp}}  := \sum_{i=1}^{nq} \exp(-\un_i) y_i(\x) \bigg / \sum_{i=1}^{nq} \exp(-\un_i).
 \end{equation*}
- This weighting scheme was used to generate figure \ref{fig:exp}. We
- may also weight by the inverse of the uncertainty, resulting in the
- following weighting scheme:
+This weighting scheme was used to generate figure \ref{fig:exp}. We
+may also weight by the inverse of the uncertainty, resulting in the
+following weighting scheme:
 \begin{equation*}
-  \pred_{\text{Precision}} (\x ) := \sum_{i=1}^{nq} \frac{1}{\un_i(\x)} \pred_i(\x) / \sum_{i=1}^{nq} \frac{1}{\un_i(\x)}.
+  y_{\text{precision}} := \sum_{i=1}^{nq} \frac{1}{\un_i} y_i \bigg / \sum_{i=1}^{nq} \frac{1}{\un_i}.
 \end{equation*}
 This weighting scheme was used to generate figure \ref{fig:prec}.
 
-It is crucial to note that $\x$ represent an abstract state on the
-attractor manifold. In this respect, a predictor $\pred_i$ also
-involves a specific set of coordinates used for prediction.
-
-The results in section \ref{section:results} can be generated by
-anyone who has the original data, which is, unfortunately,
-proprietary. Documented code can be downloaded from
+The datasets analysed during the current study are not publicly
+available due to them being proprietary but are available from the
+corresponding author on reasonable request. The results in section
+\ref{section:results} can be generated by anyone who has the original
+data. Documented code can be downloaded from
 \url{http://github.com/yairdaon/algae}. Given the data, one should
 type \emph{make everything} in the main directory to generate all the
-plots. This requires the package rEDM version 0.6.0 or higher.
+plots and printouts. The code requires the package rEDM version 0.6.0
+or higher.
 
 \bibliography{bibi}
 
-\section*{Acknowledgements (not compulsory)}
+\section*{Acknowledgements}
 This research was supported in part by an appointment with the NSF
 Mathematical Sciences Summer Internship Program sponsored by the
 National Science Foundation, Division of Mathematical Sciences
@@ -210,16 +238,13 @@ the U.S. Department of Energy (DOE) and NSF. ORISE is managed by ORAU
 under DOE contract number DE-SC0014664.
 
 \section*{Author contributions statement}
-Must include all authors, identified by initials, for example:
-A.A. conceived the experiment(s), A.A. and B.A. conducted the
-experiment(s), C.A. and D.A. analysed the results. All authors
-reviewed the manuscript.
+YD prepared the manuscript, figures and code. YD, GS and HY
+suggested the uncertainty measure. JM and MC collected the data.
 
 \section*{Additional information}
 
 To include, in this order: \textbf{Accession codes} (where
-applicable); \textbf{Competing financial interests} (mandatory
-statement).
+applicable); The authors declare no competing financial interest.
 
 The corresponding author is responsible for submitting a
 \href{http://www.nature.com/srep/policies/index.html#competing}{competing

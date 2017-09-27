@@ -1,10 +1,16 @@
-originals/*
-data/*
+real/originals/*
+real/data/*
+real/plots/*
+
+model/originals/*
+model/data/*
+model/plots/*
+
 tmp.r
 .Rhistory
 *~
 *.jpg
-plots/*
+
 
 paper/*
 !paper/paper.tex

@@ -1,6 +1,9 @@
 #!/usr/bin/Rscript
 library(rEDM)
 source( "helpers/plotting.r" )
+source( "helpers/helper.r" )
+
+## Plot average of uncertainty of all models against chl.
 
 args <- commandArgs(trailingOnly = TRUE)
 if( (length(args) == 0)  ) {
@@ -17,18 +20,19 @@ n <- dims[2]
 var_table[ is.na(pred_table) ] <- NA
 avg_var <- colMeans( var_table , na.rm = TRUE )
 
-double_plot(1:n,
+double_plot(serial2date(serial_day),
             chl,
             avg_var,
             q = norm_threshold,
             xlabel   = "Time",
             y1label  = "Chl-A",
             y2label  = "uncertainty - variance",
-            title    = paste0("Prediction uncertainty and Chl-A with 95% Chl-A threshold, ", xtension), 
+            ## title    = paste0("Prediction uncertainty and Chl-A with 95% Chl-A threshold, ", xtension), 
             filename = paste0( "var_chl_", tolower(xtension) )
             )
 
 var_df <- data.frame(serial_day, avg_var )
+
 save(var_df,
      file=paste0( "data/avg_var_df_", tolower(xtension), ".Rdata" ) )
 

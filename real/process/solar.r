@@ -37,7 +37,7 @@ df$weekly <- rollapply(df$daily,
 rad_block <- data.frame( serial_day = df$serial_day )
 ts <- zoo( df$weekly )
 rad_block$SolRad     <-      ts
-rad_block$SolRad_1wk <- lag( ts,  -7,  na.pad = TRUE )
+rad_block$SolRad_1wk <- lag( ts,  -7, na.pad = TRUE )
 rad_block$SolRad_2wk <- lag( ts, -14, na.pad = TRUE )
 
 stopifnot(all(

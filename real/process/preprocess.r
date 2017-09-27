@@ -59,11 +59,12 @@ df$U_WIND     <- (orig_block$U_WIND     - c ) / s
 df$U_WIND_1wk <- (orig_block$U_WIND_1wk - c ) / s
 df$U_WIND_2wk <- (orig_block$U_WIND_2wk - c ) / s
 
-## c <- cent( orig_block$SolRad )
-## s <- scal( orig_block$SolRad )
-## df$SolRad     <- (orig_block$SolRad     - c ) / s
-## df$SolRad_1wk <- (orig_block$SolRad_1wk - c ) / s
-## df$SolRad_2wk <- (orig_block$SolRad_2wk - c ) / s
+c <- cent( rad_block$SolRad )
+s <- scal( rad_block$SolRad )
+tmp <- data.frame(serial_day =  rad_block$serial_day,
+                  SolRad     = as.vector(rad_block$SolRad     - c ) / s,
+                  SolRad_1wk = as.vector(rad_block$SolRad_1wk - c ) / s,
+                  SolRad_2wk = as.vector(rad_block$SolRad_2wk - c ) / s)
 
 ## Reorder the data frame
 df <- df[ order(df$serial_day), ]
@@ -73,6 +74,14 @@ row.names( df ) <- 1:nrow( df )
 stopifnot( all(
     diff( df$serial_day ) > 0
 ) )
+
+b4 <- nrow( df )
+
+## Merge
+df <- merge(x = df,
+            y = tmp,
+            by = "serial_day", all.x = TRUE)
+stopifnot( b4 == nrow(df) )
 
 save(df,
      norm_threshold,

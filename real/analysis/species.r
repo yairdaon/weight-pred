@@ -1,6 +1,9 @@
 #!/usr/bin/env Rscript
 library(rEDM)
 
+## First script that uses the species count data. Use linear
+## regression to estimate how much chlorophyll each is worth.
+
 df <- read.table("originals/data_20111121.txt",
                   header = TRUE,
                   sep = "\t",
