@@ -80,9 +80,8 @@ combinations <- combinations[ ,1:n_comb ]
 ## Preallocate memory for predictions and uncertainties
 pred_table  <- matrix( NA,  nrow = n_comb, ncol = pred_size )
 var_table   <- matrix( Inf, nrow = n_comb, ncol = pred_size )
-predictions <- matrix( NA,  nrow = n_samp, ncol = pred_size )
-rhos        <- rep   ( NA,         n_samp                  )
-
+rhos        <- rep   ( NA,         n_samp                   )
+prediction  <- numeric(                           pred_size )
 
 
 for (lib_ind in 1:nrow(results) )
@@ -131,8 +130,8 @@ for (lib_ind in 1:nrow(results) )
             
         }
         
-        predictions[smp, ] <- weighted_prediction(var_table, pred_table)
-        rhos[smp] <- cor(predictions[smp, ], y_p1[time], use = "complete.obs" )
+        prediction <- weighted_prediction(var_table, pred_table)
+        rhos[smp]  <- cor(prediction, y_p1[time], use = "complete.obs" )
     }
 
     quarts <- quantile(rhos, probs = c(0.25,0.5,0.75))
@@ -144,9 +143,7 @@ for (lib_ind in 1:nrow(results) )
 }
 
 write.csv(results,
-          file = "data/rhos.csv",
-          row.names = FALSE,
-          col.names = TRUE)
+          file = "data/rhos.csv")
 
 
 ## noo <- read.csv("data/rhos.csv", header = TRUE, sep = "," )

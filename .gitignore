@@ -1,6 +1,6 @@
-real/originals/*
-real/data/*
-real/plots/*
+algae/originals/*
+algae/data/*
+algae/plots/*
 
 model/data/*
 model/plots/*
@@ -14,3 +14,5 @@ tmp.r
 paper/*
 !paper/paper.tex
 !paper/bibi.bib
+
+aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx
