@@ -1,8 +1,45 @@
 library( zoo )
 
+## Get a weighted prediction using the predictors and their
+## uncertainty.
+weighted_prediction <- function(var_table,
+                                pred_table)
+{
+    ## Sanity check
+    stopifnot(
+        nrow(var_table) == nrow(pred_table) &&
+        ncol(var_table) == ncol(pred_table)
+    )
+
+    ## Meomry allocation
+    ret <- numeric(ncol(pred_table))
+
+    ## Avoid loops at all costs!!! Or be lazy!!
+    for( i in 1:ncol(pred_table) )
+    {            
+        ## Extract uncertainty of all predictors and find its
+        v   <- var_table[ , i]
+        ind <- order( v )[1:ceiling(sqrt(nrow(var_table)))]
+        
+        ## Find who is in, get corresponding predictions and get
+        ## corresponding weights, both exponential and precision.
+        p <- pred_table[ind, i]
+        w <- exp(-v[ind])
+            
+        ## Weight the predictors according to the weights and store
+        ## the weighted prediction in the preallocated matrices.
+        ret[i] <- sum(p * w) / sum(w)
+    }
+    return( ret )
+}
+
+
 ## Craeate lags for every variable
 lag_every_variable <- function(df, n_lags)
 {
+    tmp <- data.frame(tmp = numeric(nrow(df)))
+    tmp$tmp <- NULL
+    
     for( var in names(df) )
     {
         ts <- zoo( df[ , var ] )
@@ -10,7 +47,10 @@ lag_every_variable <- function(df, n_lags)
             df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
                                            lag( ts, -k )
                                            )
+        tmp[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
     }
+
+    df <- data.frame( c(tmp,df) )
     return( df )
 }
 
