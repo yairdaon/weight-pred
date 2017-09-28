@@ -120,7 +120,7 @@ for( j in 1:2 )
 
         ## Extract uncertainty of all predictors and find its quantiles
         v <- var_table[ , i]
-        q  <- quantile( v, cutoffs[j] )
+        q <- quantile( v, cutoffs[j] )
 
         ## Find who is in that quantile, get corresponding
         ## predictions and get corresponding weights, both

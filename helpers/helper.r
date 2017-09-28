@@ -1,5 +1,31 @@
 library( zoo )
 
+## Craeate lags for every variable
+lag_every_variable <- function(df, n_lags)
+{
+    for( var in names(df) )
+    {
+        ts <- zoo( df[ , var ] )
+        for( k in 1:(n_lags-1) )
+            df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
+                                           lag( ts, -k )
+                                           )
+    }
+    return( df )
+}
+
+
+## Guess what this function does...
+normalize_df <- function(df)
+{
+    vars <- names(df) 
+    df <- scale(df) ## This makes the df a matrix...
+    df <- data.frame( df ) ## ...so make it a df...
+    names(df) <- vars ##...and restore the names.
+    return( df )
+}
+
+
 bloom_or_not_days <- function(df,
                               threshold,
                               ran,
