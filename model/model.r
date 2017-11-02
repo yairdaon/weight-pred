@@ -116,7 +116,7 @@ predict <- function(raw_df,
                 ## and scaling (when operations performed on both
                 ## variables).
                 prediction <- descale(prediction, mu, sig)
-                truth <- descale(truth, mu, sig)
+                truth      <- descale(truth, mu, sig)
 
                 ## Store the correlation coefficient
                 rhos[smp]  <- cor(prediction, truth, use = "complete.obs" )
@@ -132,19 +132,10 @@ predict <- function(raw_df,
         }
 
         write.csv(results,
-                  file = paste0("data/rhos_", curr_var, ".csv") )
-
-        pdf( paste0("plots/rhos_", curr_var, ".pdf") )
-        plot(lib_sizes,
-             results$avg,
-             type = "l",
-             xlab = "Library Size",
-             ylab = "Prediction Skill")
-
-        lines(results$avg, col="red" )
-        lines(results$avg, col="red" )
-        dev.off()
-        
+                  file = paste0("data/rhos_", curr_var, ".csv"),
+                  quote = FALSE,
+                  na = "NA",
+                  row.names = TRUE)        
     }
 }
 
@@ -154,17 +145,17 @@ df <- read.csv("originals/data.csv",
                      header = TRUE,
                      sep = "," )
 
+variables <- c( "x" )
 
 predict(df,
-        variables = names(df), 
+        variables = variables,
         E = 3, ## Embedding dimension of the system.
         n_lags = 3, ## 0, -1,..., -(n_lags-1)
-        n_samp = 5, ## Number of random libraries, should be in the hundreds
-        lib_range = c(501:2001),  ## Library set.
+        n_samp = 150, ## Number of random libraries, should be in the hundreds
+        lib = c(501,2001),  ## Library set.
         pred = c(2501,3000), ## Prediciton set.
-        lib_sizes = (1:10)*2 ## Library sizes
+        lib_sizes = (1:30)*5 ## Library sizes
         )
-
 
 ## L8YTCKPF48Y070948 ## True
 ## L8YTCKPF98Y070945 ## Pink slip

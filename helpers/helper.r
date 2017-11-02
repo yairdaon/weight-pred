@@ -33,8 +33,9 @@ get_sigs <- function(df)
 
 random_lib <- function(lib_range, lib_size )
 {
-    lib_start <- sample(lib_range, 1)
+    lib_start <- sample(lib_range[1]:lib_range[2], 1)
     lib       <- c(lib_start, lib_start + lib_size- 1 )
+    return(lib)
 }
 
 ## Get a weighted prediction using the predictors and their
