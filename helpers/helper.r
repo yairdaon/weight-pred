@@ -1,4 +1,41 @@
+#!/usr/bin/Rscript
 library( zoo )
+
+make_combinations <- function(n_vars,
+                              n_lags,
+                              E)
+{
+    ## We know the allowed combinations must have one unlagged
+    ## variable. By the way function combn is structured, these will be
+    ## the first n_comb (defined below).
+    combinations <- combn( n_vars*n_lags, E ) ## Get ALL cobminations.
+    ## Only this many are OK: subtract the bad ones
+    n_comb <- choose( n_vars*n_lags, E )- choose(n_vars*(n_lags-1), E ) 
+    ## Throw away the rest.
+    combinations <- combinations[ ,1:n_comb ]
+
+    return(combinations)
+}
+        
+get_mus <- function(df)
+{
+    mus  <- colMeans(df, na.rm = TRUE)
+    mus  <- setNames(as.list(mus), names(df))
+    return(mus)
+}
+
+get_sigs <- function(df)
+{
+    sigs <- apply(df, 2, sd, na.rm = TRUE )
+    sigs <- setNames(as.list(sigs), names(df))
+    return(sigs)
+}
+
+random_lib <- function(lib_range, lib_size )
+{
+    lib_start <- sample(lib_range, 1)
+    lib       <- c(lib_start, lib_start + lib_size- 1 )
+}
 
 ## Get a weighted prediction using the predictors and their
 ## uncertainty.
@@ -34,37 +71,107 @@ weighted_prediction <- function(var_table,
 }
 
 
-## Craeate lags for every variable
+## Craeate all lags and push-ahead for every variable. If 
 lag_every_variable <- function(df, n_lags)
 {
-    tmp <- data.frame(tmp = numeric(nrow(df)))
-    tmp$tmp <- NULL
-    
+    ## Take every variable ...
     for( var in names(df) )
     {
+        ## ... make that variable a time series ...
         ts <- zoo( df[ , var ] )
+
+        ## ... and create its lags.
         for( k in 1:(n_lags-1) )
             df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
                                            lag( ts, -k )
                                            )
-        tmp[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
     }
 
+    ## Create dataframe to hold the look-ahead time series
+    tmp <- data.frame(tmp = numeric(nrow(df)))
+    tmp$tmp <- NULL
+    
+    ## Take every variable ...
+    for( var in names(df) )
+        ## ... and and create a look-ahead time series.
+        tmp[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
+
+    ## Merge the dataframes so that the names are sorted as follows:
+    ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
+    ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
     df <- data.frame( c(tmp,df) )
+    ## print( names(df) ) ## If you don't believe what I wrote above.
+    
     return( df )
 }
+## ## Normalize data frame AND keep track of column means and standard
+## ## deviations.
+## normalize_df <- function(df)
+## {
+##     ## Keep track of the names
+##     vars <- names(df)
+
+##     ## Hold the means and sds
+##     means <- colMeans(df, na.rm = TRUE)
+##     sds   <- apply(df, 2, sd, na.rm = TRUE )
+
+##     df <- scale(as.matrix(df))
+##     df <- data.frame(df)
+##     names(df) <- vars
+
+##     df <- (df - means)/sds
+##     attr(df, "means") <- means
+##     attr(df, "sds") <- sds
+##     return(df)
+## }
 
 
-## Guess what this function does...
-normalize_df <- function(df)
+descale <- function( df, mu = NULL, sig = NULL )
 {
-    vars <- names(df) 
-    df <- scale(df) ## This makes the df a matrix...
-    df <- data.frame( df ) ## ...so make it a df...
-    names(df) <- vars ##...and restore the names.
-    return( df )
-}
 
+    ## Undo the scaling
+    if( is.null(sig) ) {
+        if( !is.null(attr(df,"scaled:scale")) )
+            df <- scale(df, center = FALSE, scale = 1/attr(df, "scaled:scale" ) )
+    }
+    else
+        df <- scale(df, center = FALSE, scale = 1/sig)
+    
+    ## Undo the centering
+    if( is.null(mu) ) {
+        if( !is.null(attr(df,"scaled:center"))) 
+            df <- scale(df, center = -attr(df, "scaled:center"), scale = FALSE  )
+    }
+    else 
+        df <- scale(df, center = -mu, scale = FALSE )
+    
+    return(df)
+}
+## Tests for function rescale
+df <- data.frame(x = c(1,4,6,2,4,6,-1),
+                 y = c(1,2,3,4,5,6,7),
+                 z = c(0,1,0,1,0,1,0))
+df1 <- scale( df )
+df2 <- descale(df1)
+stopifnot(all(
+    abs(df2-df) < 1e-14
+))
+
+df3 <- descale(df1,
+               mu  = attr(df1, "scaled:center"),
+               sig = attr(df1, "scaled:scale" )  
+               )
+stopifnot(all(
+    abs(df3-df) < 1e-14
+))
+
+true_cor <- function(x, y, mu, sig ) {
+
+    x <- descale(x, mu = mu, sig = sig )
+    y <- descale(y, mu = mu, sig = sig )
+
+    return( cor(x, y, use = "complete.obs" ) )
+}
 
 bloom_or_not_days <- function(df,
                               threshold,
