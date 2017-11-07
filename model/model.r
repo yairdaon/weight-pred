@@ -48,9 +48,11 @@ predictions <- function(filename = stop("File name must be provided!"),
     pred_table  <- matrix( NA,  nrow = n_comb,                   ncol = pred_size )
     var_table   <- matrix( Inf, nrow = n_comb,                   ncol = pred_size )
     predictions <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = pred_size )
+    mve         <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = pred_size )
     rand_libs   <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = 2         )
-
-                          ## Do the analysis for every variable. 
+    rhos        <- numeric( n_comb )
+    
+    ## Do the analysis for every variable. 
     for( curr_var in variables )
     {
         lib_ind = 0
@@ -101,7 +103,21 @@ predictions <- function(filename = stop("File name must be provided!"),
                     pred_table[comb, ] <- output[[1]]$model_output$pred    [pred[1]:pred[2]] 
                     var_table [comb, ] <- output[[1]]$model_output$pred_var[pred[1]:pred[2]]
 
-                }
+
+                    ## Now we do CV, for the MVE ranking. All we need
+                    ## is the rho value for ranking.
+                    cv_output <- block_lnlp(df,
+                                         lib = rand_lib, ## chosen randomly above
+                                         pred = rand_lib, ## CV!!!
+                                         method = "simplex",
+                                         tp = 0, ## Lags built into df
+                                         columns = combinations[, comb] + n_vars, ## see ***
+                                         target_column = paste0( curr_var, "_p1" ),
+                                         first_column_time = FALSE,
+                                         stats_only = TRUE )
+                    rhos[comb] <- cv_output$rho
+                    
+                } ## Closes  for( comb in 1:n_comb )
 
                 ## Weighted predictions for the current sampled library 
                 prediction <- weighted_prediction(var_table, pred_table)
@@ -109,28 +125,39 @@ predictions <- function(filename = stop("File name must be provided!"),
                 predictions[lib_ind, ] <- prediction
 
                 
-
+                ## MVE Predictions:
+                ord <- order(rhos)[1:ceiling(sqrt(n_comb))]
+                mve[ lib_ind, ] <- colMeans( pred_table[ord, ], na.rm = TRUE ) 
                 
-                
-            }
-            write.table(predictions,
-                        file = paste0("runs/weighted_predictions_", curr_var, ".csv"),
-                        quote = FALSE,
-                        na = "NA",
-                        row.names = FALSE,
-                        col.names = FALSE)
+            } ## Closes for( smp in 1:n_samp )
             
-            write.table(rand_libs,
-                        file = paste0("runs/libraries_", curr_var, ".txt" ),
-                        quote = FALSE,
-                        na = "NA",
-                        row.names = FALSE,
-                        col.names = FALSE,
-                        sep = "\t")
-                    
-        }
+        } ## Closes for (lib_size in lib_sizes)
 
-    }
+
+        write.table(predictions,
+                    file = paste0("runs/weighted_predictions_", curr_var, ".csv"),
+                    quote = FALSE,
+                    na = "NA",
+                    row.names = FALSE,
+                    col.names = FALSE)
+
+        write.table(mve,
+                    file = paste0("runs/mve_predictions_", curr_var, ".csv"),
+                    quote = FALSE,
+                    na = "NA",
+                    row.names = FALSE,
+                    col.names = FALSE)
+        
+        write.table(rand_libs,
+                    file = paste0("runs/libraries_", curr_var, ".txt" ),
+                    quote = FALSE,
+                    na = "NA",
+                    row.names = FALSE,
+                    col.names = FALSE,
+                    sep = "\t")
+                    
+        
+    } ## Closes for( curr_var in variables )
     
     ## Now that we are done, we save the parameters so we can know
     ## EXACTLY what parameters we were using
@@ -144,7 +171,7 @@ predictions <- function(filename = stop("File name must be provided!"),
          lib_sizes,         
          file = "runs/parameters.Rdata" )
 
-}
+} ## Closes predictions <- function(...)
 
 
 
