@@ -71,6 +71,12 @@ weighted_prediction <- function(var_table,
     return( ret )
 }
 
+mve_prediction <- function(pred_table, rhos )
+{
+    top_preformers <- order(rhos)[ 1 : ceiling(sqrt(length(rhos))) ]
+    prediction <- colMeans( pred_table[top_preformers, ], na.rm = TRUE ) 
+    return( prediction )
+}
 
 ## Craeate all lags and push-ahead for every variable. If 
 lag_every_variable <- function(df, n_lags)

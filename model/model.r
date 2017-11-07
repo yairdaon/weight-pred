@@ -27,29 +27,30 @@ predictions <- function(filename = stop("File name must be provided!"),
                    header = TRUE,
                    sep = "," )
 
-    ## Immediately rescale the data frame and keep track of the
-    ## normalizing factors.
+    ## Useful numbers to have
+    pred_size   <- pred[2] - pred[1] + 1
+    n_lib       <- length(lib_sizes)
+    n_vars      <- ncol(raw_df) ## number of variables in the dynamical system
+
+    ## Rescale the data frame and keep track of the normalizing
+    ## factors.
     mus  <- get_mus(raw_df)
     sigs <- get_sigs(raw_df)
-    df   <- data.frame(scale(raw_df))
-      
-    ## number of variables in the dynamical system
-    n_vars <- ncol(df)
+    df   <- data.frame(scale(raw_df))    
 
     ## Create lags for every variable and make y_p1
     df <- lag_every_variable(df, n_lags)
 
     ## Create the list of combinations
     combinations <- make_combinations(n_vars, n_lags, E)
-    n_comb       <- ncol(combinations)
-    
+    n_comb      <- ncol(combinations)
+        
     ## Preallocate memory for everything.
-    pred_size   <- pred[2] - pred[1] + 1
-    pred_table  <- matrix( NA,  nrow = n_comb,                   ncol = pred_size )
-    var_table   <- matrix( Inf, nrow = n_comb,                   ncol = pred_size )
-    predictions <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = pred_size )
-    mve         <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = pred_size )
-    rand_libs   <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = 2         )
+    pred_table  <- matrix( NA,  nrow = n_comb,       ncol = pred_size )
+    var_table   <- matrix( Inf, nrow = n_comb,       ncol = pred_size )
+    weighted    <- matrix( NA,  nrow = n_samp*n_lib, ncol = pred_size )
+    mve         <- matrix( NA,  nrow = n_samp*n_lib, ncol = pred_size )
+    rand_libs   <- matrix( NA,  nrow = n_samp*n_lib, ncol = 2         )
     rhos        <- numeric( n_comb )
     
     ## Do the analysis for every variable. 
@@ -107,34 +108,35 @@ predictions <- function(filename = stop("File name must be provided!"),
                     ## Now we do CV, for the MVE ranking. All we need
                     ## is the rho value for ranking.
                     cv_output <- block_lnlp(df,
-                                         lib = rand_lib, ## chosen randomly above
-                                         pred = rand_lib, ## CV!!!
-                                         method = "simplex",
-                                         tp = 0, ## Lags built into df
-                                         columns = combinations[, comb] + n_vars, ## see ***
-                                         target_column = paste0( curr_var, "_p1" ),
-                                         first_column_time = FALSE,
-                                         stats_only = TRUE )
+                                            lib = rand_lib, ## chosen randomly above
+                                            pred = rand_lib, ## CV!!!
+                                            method = "simplex",
+                                            tp = 0, ## Lags built into df
+                                            columns = combinations[, comb] + n_vars, ## see ***
+                                            target_column = paste0( curr_var, "_p1" ),
+                                            first_column_time = FALSE,
+                                            stats_only = TRUE )
                     rhos[comb] <- cv_output$rho
                     
                 } ## Closes  for( comb in 1:n_comb )
 
                 ## Weighted predictions for the current sampled library 
-                prediction <- weighted_prediction(var_table, pred_table)
+                prediction <- weighted_prediction( var_table, pred_table )
                 prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
-                predictions[lib_ind, ] <- prediction
-
+                weighted[lib_ind, ] <- prediction
+                
                 
                 ## MVE Predictions:
-                ord <- order(rhos)[1:ceiling(sqrt(n_comb))]
-                mve[ lib_ind, ] <- colMeans( pred_table[ord, ], na.rm = TRUE ) 
+                prediction <- mve_prediction( pred_table, rhos )
+                prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
+                mve[ lib_ind, ] <- prediction 
                 
             } ## Closes for( smp in 1:n_samp )
             
         } ## Closes for (lib_size in lib_sizes)
 
 
-        write.table(predictions,
+        write.table(weighted,
                     file = paste0("runs/weighted_predictions_", curr_var, ".csv"),
                     quote = FALSE,
                     na = "NA",
@@ -184,5 +186,4 @@ predictions(file = "originals/three_species.csv",
             pred = c(2501,3000), ## Prediciton set.
             lib_sizes = (1:2)*25 ## Library sizes
             )
-
 
