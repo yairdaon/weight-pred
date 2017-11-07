@@ -158,11 +158,11 @@ predictions <- function(filename = stop("File name must be provided!"),
                     col.names = FALSE,
                     sep = "\t")
 
+        
         truth  <- descale(df[ , paste0(curr_var, "_p1") ], mus$curr_var, sigs$curr_var )
         errors <- data.frame(
             weighted = colMeans( abs( sweep( weighted, 2, truth ) ) ),
             mve      = colMeans( abs( sweep( mve,      2, truth ) ) ))
-        
         write.table(errors,
                     file = paste0("runs/mean_tracking_errors_", curr_var, ".csv" ),
                     quote = FALSE,
@@ -171,7 +171,7 @@ predictions <- function(filename = stop("File name must be provided!"),
                     col.names = TRUE,
                     sep = ",")
                             
-    } ## Closes for( curr_var in variables )
+   } ## Closes for( curr_var in variables )
     
     ## Now that we are done, we save the parameters so we can know
     ## EXACTLY what parameters we were using
