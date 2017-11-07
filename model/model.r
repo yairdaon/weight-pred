@@ -12,16 +12,21 @@ source( "../helpers/helper.r" )
 ## filename = paste0("http://science.sciencemag.org/highwire/filestream/683325/",
 ##                   "field_highwire_adjunct_files/1/aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx")
 
-save_weighted_predictions <- function(raw_df,
-                                      variables = names(raw_df), 
-                                      E = 3, ## Embedding dimension of the system.
-                                      n_lags = 3, ## 0, -1,..., -(n_lags-1)
-                                      n_samp = 5, ## Number of random libraries, should be in the hundreds
-                                      lib_range = c(501:2001),  ## Library set.
-                                      pred = c(2501,3000), ## Prediciton set.
-                                      lib_sizes = (1:3)*10     ## Library changes in size and is also random
-                                      )
-{   
+predictions <- function(filename = stop("File name must be provided!"),
+                        variables = names(raw_df), 
+                        E = 3, ## Embedding dimension of the system.
+                        n_lags = 3, ## 0, -1,..., -(n_lags-1)
+                        n_samp = 200, ## Number of random libraries, should be in the hundreds
+                        lib = c(501:2001),  ## Library set.
+                        pred = c(2501,3000), ## Prediciton set.
+                        lib_sizes = (1:15)*10     ## Library changes in size and is also random
+                        )
+{
+    ## Load data 
+    raw_df <- read.csv(filename,
+                   header = TRUE,
+                   sep = "," )
+
     ## Immediately rescale the data frame and keep track of the
     ## normalizing factors.
     mus  <- get_mus(raw_df)
@@ -38,23 +43,28 @@ save_weighted_predictions <- function(raw_df,
     combinations <- make_combinations(n_vars, n_lags, E)
     n_comb       <- ncol(combinations)
     
-    ## Preallocate memory for predictions and uncertainties
+    ## Preallocate memory for everything.
     pred_size   <- pred[2] - pred[1] + 1
-    pred_table  <- matrix( NA,  nrow = n_comb, ncol = pred_size )
-    var_table   <- matrix( Inf, nrow = n_comb, ncol = pred_size )
-    predictions <- matrix( NA,  nrow = n_samp, ncol = pred_size )
+    pred_table  <- matrix( NA,  nrow = n_comb,                   ncol = pred_size )
+    var_table   <- matrix( Inf, nrow = n_comb,                   ncol = pred_size )
+    predictions <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = pred_size )
+    rand_libs   <- matrix( NA,  nrow = n_samp*length(lib_sizes), ncol = 2         )
 
-    ## Do the analysis for every variable. 
+                          ## Do the analysis for every variable. 
     for( curr_var in variables )
     {
+        lib_ind = 0
         for (lib_size in lib_sizes)
         {
+
             ## For every random library starting point
             for( smp in 1:n_samp )
             {
                 ## Choose random lib
-                lib <- random_lib(lib_range, lib_size)
-                
+                rand_lib <- random_lib(lib, lib_size)
+                lib_ind <- lib_ind + 1
+                rand_libs[ lib_ind, ] <- rand_lib
+                    
                 for( comb in 1:n_comb )
                 {
 
@@ -62,16 +72,16 @@ save_weighted_predictions <- function(raw_df,
                     ## unlagged coordinate.
                     ## stopifnot( min(combinations[,comb]) <= n_vars )
                     
-                    ## Variables used for prediction are chosen
+                    ## *** Variables used for prediction are chosen
                     ## according to the current combinations. Since
                     ## first cols are x_p1, y_p1, z_p1, we skip them
                     ## and add n_var.
                     output <- block_lnlp(df,
-                                         lib = lib,   ## lib is chosen randomly above
-                                         pred = pred, ## pred is ALWAYS the same
+                                         lib = rand_lib, ## chosen randomly above
+                                         pred = pred, ## always the same
                                          method = "simplex",
                                          tp = 0, ## Lags built into df
-                                         columns = combinations[, comb] + n_vars, 
+                                         columns = combinations[, comb] + n_vars, ## see ***
                                          target_column = paste0( curr_var, "_p1" ),
                                          first_column_time = FALSE,
                                          short_output = FALSE,
@@ -90,37 +100,62 @@ save_weighted_predictions <- function(raw_df,
                     ## These tables hold data for the current (random) library
                     pred_table[comb, ] <- output[[1]]$model_output$pred    [pred[1]:pred[2]] 
                     var_table [comb, ] <- output[[1]]$model_output$pred_var[pred[1]:pred[2]]
+
                 }
 
                 ## Weighted predictions for the current sampled library 
-                predictions[smp, ] <- weighted_prediction(var_table, pred_table)
-                ## prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
-            }
+                prediction <- weighted_prediction(var_table, pred_table)
+                prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
+                predictions[lib_ind, ] <- prediction
 
+                
+
+                
+                
+            }
             write.table(predictions,
-                        file = paste0("data/all_predictions_", curr_var, "_lib_size_", lib_size, ".csv"),
+                        file = paste0("runs/weighted_predictions_", curr_var, ".csv"),
                         quote = FALSE,
                         na = "NA",
                         row.names = FALSE,
                         col.names = FALSE)
+            
+            write.table(rand_libs,
+                        file = paste0("runs/libraries_", curr_var, ".txt" ),
+                        quote = FALSE,
+                        na = "NA",
+                        row.names = FALSE,
+                        col.names = FALSE,
+                        sep = "\t")
+                    
         }
+
     }
+    
+    ## Now that we are done, we save the parameters so we can know
+    ## EXACTLY what parameters we were using
+    save(filename,
+         variables,
+         E,
+         n_lags,
+         n_samp,
+         lib,
+         pred,
+         lib_sizes,         
+         file = "runs/parameters.Rdata" )
+
 }
 
 
-## Load data 
-df <- read.csv("originals/data.csv",
-                     header = TRUE,
-                     sep = "," )
 
-variables <- c( "x", "y", "z" )
+predictions(file = "originals/three_species.csv",
+            variables =c( "x", "y" ),
+            E = 3, ## Embedding dimension of the system.
+            n_lags = 3, ## 0, -1,..., -(n_lags-1)
+            n_samp = 5, ## Number of random libraries, should be in the hundreds
+            lib = c(501,2001),  ## Library set.
+            pred = c(2501,3000), ## Prediciton set.
+            lib_sizes = (1:2)*25 ## Library sizes
+            )
 
-save_weighted_predictions(df,
-                          variables = variables,
-                          E = 3, ## Embedding dimension of the system.
-                          n_lags = 3, ## 0, -1,..., -(n_lags-1)
-                          n_samp = 150, ## Number of random libraries, should be in the hundreds
-                          lib = c(501,2001),  ## Library set.
-                          pred = c(2501,3000), ## Prediciton set.
-                          lib_sizes = (1:30)*5 ## Library sizes
-                          )
+
