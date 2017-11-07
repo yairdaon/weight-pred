@@ -157,8 +157,20 @@ predictions <- function(filename = stop("File name must be provided!"),
                     row.names = FALSE,
                     col.names = FALSE,
                     sep = "\t")
-                    
+
+        truth  <- descale(df[ , paste0(curr_var, "_p1") ], mus$curr_var, sigs$curr_var )
+        errors <- data.frame(
+            weighted = colMeans( abs( sweep( weighted, 2, truth ) ) ),
+            mve      = colMeans( abs( sweep( mve,      2, truth ) ) ))
         
+        write.table(errors,
+                    file = paste0("runs/mean_tracking_errors_", curr_var, ".csv" ),
+                    quote = FALSE,
+                    na = "NA",
+                    row.names = FALSE,
+                    col.names = TRUE,
+                    sep = ",")
+                            
     } ## Closes for( curr_var in variables )
     
     ## Now that we are done, we save the parameters so we can know
@@ -178,12 +190,12 @@ predictions <- function(filename = stop("File name must be provided!"),
 
 
 predictions(file = "originals/three_species.csv",
-            variables =c( "x", "y" ),
+            variables =c( "x" )
             E = 3, ## Embedding dimension of the system.
             n_lags = 3, ## 0, -1,..., -(n_lags-1)
             n_samp = 5, ## Number of random libraries, should be in the hundreds
             lib = c(501,2001),  ## Library set.
             pred = c(2501,3000), ## Prediciton set.
-            lib_sizes = (1:2)*25 ## Library sizes
+            lib_sizes = 50 ## Library sizes
             )
 

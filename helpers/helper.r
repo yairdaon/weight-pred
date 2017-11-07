@@ -60,7 +60,7 @@ weighted_prediction <- function(var_table,
         ind <- order( v )[1:ceiling(sqrt(nrow(var_table)))]
         
         ## Find who is in, get corresponding predictions and get
-        ## corresponding weights, both exponential and precision.
+        ## corresponding weights
         p <- pred_table[ind, i]
         w <- exp(-v[ind])
             
@@ -71,10 +71,11 @@ weighted_prediction <- function(var_table,
     return( ret )
 }
 
-mve_prediction <- function(pred_table, rhos )
+mve_prediction <- function( pred_table, rhos )
 {
-    top_preformers <- order(rhos)[ 1 : ceiling(sqrt(length(rhos))) ]
-    prediction <- colMeans( pred_table[top_preformers, ], na.rm = TRUE ) 
+    ord <- order( rhos, decreasing = TRUE )
+    top_performers <- ord[ 1 : ceiling(sqrt(length(rhos))) ]
+    prediction <- colMeans( pred_table[top_performers, ], na.rm = TRUE ) 
     return( prediction )
 }
 

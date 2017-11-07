@@ -4,16 +4,18 @@ algae/plots/*
 
 model/data/*
 model/plots/*
+model/runs/*
 
 tmp.r
 .Rhistory
 *~
 *.jpg
-
+*.csv
+*.Rdata
+*.txt
 
 paper/*
 !paper/paper.tex
 !paper/bibi.bib
 
 aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx
-model/runs/*
