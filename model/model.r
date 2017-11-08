@@ -190,6 +190,7 @@ predictions <- function(filename = stop("File name must be provided!"),
 } ## Closes predictions <- function(...)
 
 
+system("rm -f run/*")
 
 predictions(file = "originals/three_species.csv",
             variables = c( "x" ),
