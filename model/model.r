@@ -29,7 +29,7 @@ predictions <- function(filename = stop("File name must be provided!"),
 
     ## Useful numbers to have
     pred_size   <- pred[2] - pred[1] + 1
-    n_lib       <- length(lib_sizes)
+    n_libs      <- length(lib_sizes)
     n_vars      <- ncol(raw_df) ## number of variables in the dynamical system
 
     ## Rescale the data frame and keep track of the normalizing
@@ -40,17 +40,17 @@ predictions <- function(filename = stop("File name must be provided!"),
 
     ## Create lags for every variable and make y_p1
     df <- lag_every_variable(df, n_lags)
-
+        
     ## Create the list of combinations
     combinations <- make_combinations(n_vars, n_lags, E)
     n_comb      <- ncol(combinations)
         
     ## Preallocate memory for everything.
-    pred_table  <- matrix( NA,  nrow = n_comb,       ncol = pred_size )
-    var_table   <- matrix( Inf, nrow = n_comb,       ncol = pred_size )
-    weighted    <- matrix( NA,  nrow = n_samp*n_lib, ncol = pred_size )
-    mve         <- matrix( NA,  nrow = n_samp*n_lib, ncol = pred_size )
-    rand_libs   <- matrix( NA,  nrow = n_samp*n_lib, ncol = 2         )
+    pred_table  <- matrix( NA,  nrow = n_comb,        ncol = pred_size )
+    var_table   <- matrix( Inf, nrow = n_comb,        ncol = pred_size )
+    weighted    <- matrix( NA,  nrow = n_samp*n_libs, ncol = pred_size )
+    mve         <- matrix( NA,  nrow = n_samp*n_libs, ncol = pred_size )
+    rand_libs   <- matrix( NA,  nrow = n_samp*n_libs, ncol = 2         )
     rhos        <- numeric( n_comb )
     
     ## Do the analysis for every variable. 
@@ -141,14 +141,16 @@ predictions <- function(filename = stop("File name must be provided!"),
                     quote = FALSE,
                     na = "NA",
                     row.names = FALSE,
-                    col.names = FALSE)
-
+                    col.names = FALSE,
+                    sep = "," )
+                    
         write.table(mve,
                     file = paste0("runs/mve_predictions_", curr_var, ".csv"),
                     quote = FALSE,
                     na = "NA",
                     row.names = FALSE,
-                    col.names = FALSE)
+                    col.names = FALSE,
+                    sep = "," )
         
         write.table(rand_libs,
                     file = paste0("runs/libraries_", curr_var, ".txt" ),
@@ -190,12 +192,12 @@ predictions <- function(filename = stop("File name must be provided!"),
 
 
 predictions(file = "originals/three_species.csv",
-            variables =c( "x" )
+            variables = c( "x" ),
             E = 3, ## Embedding dimension of the system.
             n_lags = 3, ## 0, -1,..., -(n_lags-1)
-            n_samp = 5, ## Number of random libraries, should be in the hundreds
+            n_samp = 100, ## Number of random libraries, should be in the hundreds
             lib = c(501,2001),  ## Library set.
             pred = c(2501,3000), ## Prediciton set.
-            lib_sizes = 50 ## Library sizes
+            lib_sizes = (1:4)*25 ## Library sizes
             )
 

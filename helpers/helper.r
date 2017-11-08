@@ -82,6 +82,8 @@ mve_prediction <- function( pred_table, rhos )
 ## Craeate all lags and push-ahead for every variable. If 
 lag_every_variable <- function(df, n_lags)
 {
+    lagged_df <- df
+    
     ## Take every variable ...
     for( var in names(df) )
     {
@@ -90,25 +92,29 @@ lag_every_variable <- function(df, n_lags)
 
         ## ... and create its lags.
         for( k in 1:(n_lags-1) )
-            df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
+            lagged_df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
                                            lag( ts, -k )
                                            )
     }
 
     ## Create dataframe to hold the look-ahead time series
-    tmp <- data.frame(tmp = numeric(nrow(df)))
-    tmp$tmp <- NULL
+    future_df <- data.frame( tmp = numeric(nrow(df)) )
+    future_df$tmp <- NULL
     
     ## Take every variable ...
     for( var in names(df) )
-        ## ... and and create a look-ahead time series.
-        tmp[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
+    {
+        ts <- zoo( df[ , var ] )
 
+        ## ... and and create a look-ahead time series.
+        future_df[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
+    }
+    
     ## Merge the dataframes so that the names are sorted as follows:
     ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
     ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
-    df <- data.frame( c(tmp,df) )
-    ## print( names(df) ) ## If you don't believe what I wrote above.
+    df <- data.frame( c(future_df,lagged_df) )
+    print( names(df) ) ## If you don't believe what I wrote above.
     
     return( df )
 }
