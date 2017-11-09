@@ -1,20 +1,32 @@
 #!/usr/bin/Rscript
 library( zoo )
 
+mean_cor <- function(X,
+                     y,
+                     nrows = nrow(X))
+{
+    rhos  <- cor( t(as.matrix(X)), y, use = "complete.obs" )
+    means <- colMeans( matrix(rhos, nrow = nrows ) )
+    return( means )
+}
+
 make_combinations <- function(n_vars,
                               n_lags,
                               E)
 {
+    ## Only this many are OK: subtract the bad ones
+    n_comb <- choose( n_vars*n_lags, E )- choose(n_vars*(n_lags-1), E ) 
+  
     ## We know the allowed combinations must have one unlagged
     ## variable. By the way function combn is structured, these will be
     ## the first n_comb (defined below).
     combinations <- combn( n_vars*n_lags, E ) ## Get ALL cobminations.
-    ## Only this many are OK: subtract the bad ones
-    n_comb <- choose( n_vars*n_lags, E )- choose(n_vars*(n_lags-1), E ) 
+
     ## Throw away the rest.
     combinations <- combinations[ ,1:n_comb ]
 
-    return(combinations)
+    ## Make sure it is a matrix
+    return( matrix(combinations, ncol = n_comb ) )
 }
         
 get_mus <- function(df)
@@ -43,6 +55,11 @@ random_lib <- function(lib_range, lib_size )
 weighted_prediction <- function(var_table,
                                 pred_table)
 {
+
+    
+
+
+
     ## Sanity check
     stopifnot(
         nrow(var_table) == nrow(pred_table) &&
@@ -74,8 +91,8 @@ weighted_prediction <- function(var_table,
 mve_prediction <- function( pred_table, rhos )
 {
     ord <- order( rhos, decreasing = TRUE )
-    top_performers <- ord[ 1 : ceiling(sqrt(length(rhos))) ]
-    prediction <- colMeans( pred_table[top_performers, ], na.rm = TRUE ) 
+    top_performers <- pred_table[ord[ 1 : ceiling(sqrt(length(rhos))) ] , ]
+    prediction <- colMeans(top_performers, na.rm = TRUE ) 
     return( prediction )
 }
 
@@ -83,6 +100,13 @@ mve_prediction <- function( pred_table, rhos )
 lag_every_variable <- function(df, n_lags)
 {
     lagged_df <- df
+
+    if( n_lags < 1 )
+        stop( "Must set n_lags >= 1. For using an unlagged time-series take n_lags == 1." )
+    if( n_lags == 1 )
+        lags <- c()
+    else
+        lags <- 1:(n_lags-1)
     
     ## Take every variable ...
     for( var in names(df) )
@@ -91,10 +115,10 @@ lag_every_variable <- function(df, n_lags)
         ts <- zoo( df[ , var ] )
 
         ## ... and create its lags.
-        for( k in 1:(n_lags-1) )
+        for( k in lags )
             lagged_df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
-                                           lag( ts, -k )
-                                           )
+                                                  lag( ts, -k )
+                                                  )
     }
 
     ## Create dataframe to hold the look-ahead time series
@@ -114,7 +138,7 @@ lag_every_variable <- function(df, n_lags)
     ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
     ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
     df <- data.frame( c(future_df,lagged_df) )
-    print( names(df) ) ## If you don't believe what I wrote above.
+    print(names(df)) ## If you don't believe what I wrote above.
     
     return( df )
 }

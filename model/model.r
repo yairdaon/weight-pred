@@ -15,7 +15,7 @@ source( "../helpers/helper.r" )
 predictions <- function(filename = stop("File name must be provided!"),
                         variables = names(raw_df), 
                         E = 3, ## Embedding dimension of the system.
-                        n_lags = 3, ## 0, -1,..., -(n_lags-1)
+                        n_lags = E, ## 0,-1, ..., -n_lags
                         n_samp = 200, ## Number of random libraries, should be in the hundreds
                         lib = c(501:2001),  ## Library set.
                         pred = c(2501,3000), ## Prediciton set.
@@ -26,7 +26,7 @@ predictions <- function(filename = stop("File name must be provided!"),
     raw_df <- read.csv(filename,
                    header = TRUE,
                    sep = "," )
-
+    
     ## Useful numbers to have
     pred_size   <- pred[2] - pred[1] + 1
     n_libs      <- length(lib_sizes)
@@ -43,7 +43,7 @@ predictions <- function(filename = stop("File name must be provided!"),
         
     ## Create the list of combinations
     combinations <- make_combinations(n_vars, n_lags, E)
-    n_comb      <- ncol(combinations)
+    n_comb       <- ncol(combinations)
         
     ## Preallocate memory for everything.
     pred_table  <- matrix( NA,  nrow = n_comb,        ncol = pred_size )
@@ -56,7 +56,7 @@ predictions <- function(filename = stop("File name must be provided!"),
     ## Do the analysis for every variable. 
     for( curr_var in variables )
     {
-        lib_ind = 0
+        lib_ind <- 0
         for (lib_size in lib_sizes)
         {
 
@@ -65,16 +65,23 @@ predictions <- function(filename = stop("File name must be provided!"),
             {
                 ## Choose random lib
                 rand_lib <- random_lib(lib, lib_size)
-                lib_ind <- lib_ind + 1
+                lib_ind  <- lib_ind + 1    
                 rand_libs[ lib_ind, ] <- rand_lib
-                    
+
                 for( comb in 1:n_comb )
                 {
 
                     ## Just to make sure, all variable sets have one
                     ## unlagged coordinate.
-                    ## stopifnot( min(combinations[,comb]) <= n_vars )
-                    
+                    stopifnot( min(combinations[,comb]) <= n_vars )
+
+                    target <- paste0( curr_var, "_p1" )
+                    cols   <- n_vars + combinations[ , comb ] ## see ***
+                    ## if( lib_ind == 1 ) {
+                    ##     print( names(df)[cols] )
+                    ##     print( target )
+                    ##     }
+                        
                     ## *** Variables used for prediction are chosen
                     ## according to the current combinations. Since
                     ## first cols are x_p1, y_p1, z_p1, we skip them
@@ -84,12 +91,13 @@ predictions <- function(filename = stop("File name must be provided!"),
                                          pred = pred, ## always the same
                                          method = "simplex",
                                          tp = 0, ## Lags built into df
-                                         columns = combinations[, comb] + n_vars, ## see ***
-                                         target_column = paste0( curr_var, "_p1" ),
-                                         first_column_time = FALSE,
+                                         columns = cols, 
+                                         target_column = target, 
+                                         ## first_column_time = FALSE,
                                          short_output = FALSE,
                                          stats_only = FALSE )
-
+                    ## print( output[[1]]$stats$rho )
+                                        
                     ## time <- output[[1]]$model_output$time
                     ## pr   <- output[[1]]$model_output$pred[pred[1]:pred[2]]
                     ## vars <- output[[1]]$model_output$pred_var[pred[1]:pred[2]]
@@ -112,10 +120,11 @@ predictions <- function(filename = stop("File name must be provided!"),
                                             pred = rand_lib, ## CV!!!
                                             method = "simplex",
                                             tp = 0, ## Lags built into df
-                                            columns = combinations[, comb] + n_vars, ## see ***
-                                            target_column = paste0( curr_var, "_p1" ),
+                                            columns = cols,
+                                            target_column = target,
                                             first_column_time = FALSE,
-                                            stats_only = TRUE )
+                                            stats_only = TRUE,
+                                            silent = TRUE )
                     rhos[comb] <- cv_output$rho
                     
                 } ## Closes  for( comb in 1:n_comb )
@@ -123,15 +132,23 @@ predictions <- function(filename = stop("File name must be provided!"),
                 ## Weighted predictions for the current sampled library 
                 prediction <- weighted_prediction( var_table, pred_table )
                 prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
-                weighted[lib_ind, ] <- prediction
+                weighted[ lib_ind, ] <- prediction
                 
                 
                 ## MVE Predictions:
                 prediction <- mve_prediction( pred_table, rhos )
                 prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
                 mve[ lib_ind, ] <- prediction 
-                
+
             } ## Closes for( smp in 1:n_samp )
+
+            
+            lagged <- c( as.vector(lag(zoo(raw_df[ , curr_var ] ),1)) , NA )[pred[1]:pred[2]]
+            ran <- (lib_ind - n_samp+1):lib_ind
+
+            weighted_rho <- mean_cor(weighted[ ran, ], lagged )
+            mve_rho <- mean_cor(mve[ ran, ], lagged )
+            print( paste0(weighted_rho, "  ,  ", mve_rho ) )
             
         } ## Closes for (lib_size in lib_sizes)
 
@@ -160,20 +177,7 @@ predictions <- function(filename = stop("File name must be provided!"),
                     col.names = FALSE,
                     sep = "\t")
 
-        
-        truth  <- descale(df[ , paste0(curr_var, "_p1") ], mus$curr_var, sigs$curr_var )
-        errors <- data.frame(
-            weighted = colMeans( abs( sweep( weighted, 2, truth ) ) ),
-            mve      = colMeans( abs( sweep( mve,      2, truth ) ) ))
-        write.table(errors,
-                    file = paste0("runs/mean_tracking_errors_", curr_var, ".csv" ),
-                    quote = FALSE,
-                    na = "NA",
-                    row.names = FALSE,
-                    col.names = TRUE,
-                    sep = ",")
-                            
-   } ## Closes for( curr_var in variables )
+    } ## Closes for( curr_var in variables )
     
     ## Now that we are done, we save the parameters so we can know
     ## EXACTLY what parameters we were using
@@ -189,16 +193,16 @@ predictions <- function(filename = stop("File name must be provided!"),
 
 } ## Closes predictions <- function(...)
 
-
 system("rm -f run/*")
 
 predictions(file = "originals/three_species.csv",
-            variables = c( "x" ),
+            variables = c( "y" ),
             E = 3, ## Embedding dimension of the system.
             n_lags = 3, ## 0, -1,..., -(n_lags-1)
-            n_samp = 100, ## Number of random libraries, should be in the hundreds
+            n_samp = 20, ## Number of random libraries, should be in the hundreds
             lib = c(501,2001),  ## Library set.
             pred = c(2501,3000), ## Prediciton set.
-            lib_sizes = (1:4)*25 ## Library sizes
+            lib_sizes = (1:4)*10 ## Library sizes
             )
 
+## system( "./where.r" )
