@@ -17,6 +17,7 @@ tmp.r
 *.txt
 *.Rdata
 *.pdf
+Makefile
 
 paper/*
 !paper/paper.tex

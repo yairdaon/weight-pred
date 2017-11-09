@@ -22,9 +22,10 @@ make_combinations <- function(n_vars,
     ## the first n_comb (defined below).
     combinations <- combn( n_vars*n_lags, E ) ## Get ALL cobminations.
 
-    ## Throw away the rest.
-    combinations <- combinations[ ,1:n_comb ]
-
+    ## Throw away the rest, then shift by n_vars, so we ignore the
+    ## pushed ahead time series.
+    combinations <- combinations[ ,1:n_comb ] + n_vars
+    
     ## Make sure it is a matrix
     return( matrix(combinations, ncol = n_comb ) )
 }
@@ -50,51 +51,6 @@ random_lib <- function(lib_range, lib_size )
     return(lib)
 }
 
-## Get a weighted prediction using the predictors and their
-## uncertainty.
-weighted_prediction <- function(var_table,
-                                pred_table)
-{
-
-    
-
-
-
-    ## Sanity check
-    stopifnot(
-        nrow(var_table) == nrow(pred_table) &&
-        ncol(var_table) == ncol(pred_table)
-    )
-
-    ## Meomry allocation
-    ret <- numeric(ncol(pred_table))
-
-    ## Avoid loops at all costs!!! Or be lazy!!
-    for( i in 1:ncol(pred_table) )
-    {            
-        ## Extract uncertainty of all predictors and find its
-        v   <- var_table[ , i]
-        ind <- order( v )[1:ceiling(sqrt(nrow(var_table)))]
-        
-        ## Find who is in, get corresponding predictions and get
-        ## corresponding weights
-        p <- pred_table[ind, i]
-        w <- exp(-v[ind])
-            
-        ## Weight the predictors according to the weights and store
-        ## the weighted prediction in the preallocated matrices.
-        ret[i] <- sum(p * w) / sum(w)
-    }
-    return( ret )
-}
-
-mve_prediction <- function( pred_table, rhos )
-{
-    ord <- order( rhos, decreasing = TRUE )
-    top_performers <- pred_table[ord[ 1 : ceiling(sqrt(length(rhos))) ] , ]
-    prediction <- colMeans(top_performers, na.rm = TRUE ) 
-    return( prediction )
-}
 
 ## Craeate all lags and push-ahead for every variable. If 
 lag_every_variable <- function(df, n_lags)
@@ -138,7 +94,9 @@ lag_every_variable <- function(df, n_lags)
     ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
     ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
     df <- data.frame( c(future_df,lagged_df) )
-    print(names(df)) ## If you don't believe what I wrote above.
+
+    print("These are the variables in the lagged data frame:")
+    print(names(df)) 
     
     return( df )
 }
