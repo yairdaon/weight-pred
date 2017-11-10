@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 library(rEDM)
 library(zoo)
-source( "../helpers/helper.r" )
+source( "helper.r" )
 
 mve <- function(df, ## with lagged and scaled variables.
                 variable, ## For which we wish to make predictions.

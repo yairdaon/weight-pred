@@ -1,27 +1,14 @@
 #!/usr/bin/Rscript
 library(rEDM)
 library(zoo)
-source( "../helpers/helper.r" )
+source( "helper.r" )
 
 weighted_colMeans <- function(X,
-                              W, ## Weights, NOT variances / uncertainties
-                              n = ceiling(sqrt(nrow(W))) )
+                              V ) ## variances / uncertainties
+                              
 {
-    ret <- numeric(ncol(X))
-        
-    ## Avoid loops at all costs!!! Or be lazy!!
-    for( i in 1:ncol(X) )
-    {            
-        w   <- W[ , i]
-        ind <- order( w, decreasing = TRUE )[1:n]
-        w   <- w[ind]
-        
-        p <- X[ind, i]
-                    
-        ret[i] <- sum(p * w) / sum(w)
-    }
-
-    return(ret)
+    W <- 1 / V ## Unnormalized weights 
+    return( colSums(W * X) / colSums(W) ) ## Weighted average
 }
 
 we <- function(df, ## with lagged and scaled variables.
@@ -37,8 +24,8 @@ we <- function(df, ## with lagged and scaled variables.
     pred_size <- pred[2] - pred[1] + 1
     
     ## Preallocate memory for everything.
-    P    <- matrix( NA,  nrow = n_comb, ncol = pred_size )
-    W    <- matrix( NA,  nrow = n_comb, ncol = pred_size )
+    P <- matrix( NA,  nrow = n_comb, ncol = pred_size )
+    V <- matrix( NA,  nrow = n_comb, ncol = pred_size )
             
     for( comb in 1:n_comb )
     {
@@ -58,12 +45,12 @@ we <- function(df, ## with lagged and scaled variables.
                              first_column_time = FALSE,
                              short_output = FALSE,
                              stats_only = FALSE )
-        P[comb, ] <-      output[[1]]$model_output$pred    [pred[1]:pred[2]] 
-        W[comb, ] <- exp(-output[[1]]$model_output$pred_var[pred[1]:pred[2]])
+        P[comb, ] <- output[[1]]$model_output$pred    [pred[1]:pred[2]] ## Prediction 
+        V[comb, ] <- output[[1]]$model_output$pred_var[pred[1]:pred[2]] ## Uncertainty
                 
     } ## Closes for( comb in 1:n_comb )
 
-    prediction <- weighted_colMeans(P,W)
+    prediction <- weighted_colMeans(P,V)
     return( prediction )
            
 } ## Closes we <- function(...)
