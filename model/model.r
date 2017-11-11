@@ -111,12 +111,12 @@ system("rm -f run/*")
 
 save_predictions(file = "originals/three_species.csv",
                  variables = c( "y" ),
-                 E = 2, ## Embedding dimension of the system.
-                 n_lags = 2, ## 0, -1,..., -(n_lags-1)
-                 n_samp = 4, ## Number of random libraries, should be in the hundreds
+                 E = 3, ## Embedding dimension of the system.
+                 n_lags = 3, ## 0, -1,..., -(n_lags-1)
+                 n_samp = 5, ## Number of random libraries, should be in the hundreds
                  lib = c(501,2001),  ## Library set.
                  pred = c(2501,3000), ## Prediciton set.
-                 lib_sizes = (2:3)*10,
-                 method = "we" ## Library sizes
+                 lib_sizes = (2:4)*10,
+             	 method = "we" ## Library sizes
             )
 

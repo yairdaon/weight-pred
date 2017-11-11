@@ -5,6 +5,8 @@ mean_cor <- function(X,
                      y,
                      nrows = nrow(X))
 {
+    print( dim(X) )
+    print(length(y))
     rhos  <- cor( t(as.matrix(X)), y, use = "complete.obs" )
     means <- colMeans( matrix(rhos, nrow = nrows ) )
     return( means )
