@@ -4,40 +4,52 @@ library(zoo)
 source( "../helpers/helper.r" )
 source( "../helpers/plotting.r" )
 
-print("Erase everything and re-download? Press Enter to skip, yes to download." )
-answer <- readLines( "stdin", n=1 )
+results <- function( method, variable )
+    {
+        load( paste0("runs/", method, "_parameters.Rdata" ) )
+        
+        ## Get the true values we were trying to predict
+        df <- read.csv(filename,
+                       header = TRUE,
+                       sep = "," )
+        df <- lag_every_variable(df, n_lags)
+        truth <- df[pred[1]:pred[2], paste0( variable, "_p1" ) ]
 
-if( answer == "yes" ) {
-    print( "OK. Please insert password.")
-    system("rm -f ~/edm/weight-pred/model/run/*")
-    system( "scp -r daon@access.cims.nyu.edu:~/weight-pred/model/runs/ ." )
+        predictions <- read.table(paste0("runs/", method, "_predictions_", variable, ".csv"),
+                                  na = "NA",
+                                  sep =",") 
+
+        ## Calculate mean prediction skill per library size
+        rhos <- mean_cor( predictions, truth, nrow = n_samp)
+        return( rhos ) 
+
 }
 
-load( "runs/parameters.Rdata" )
+args <- commandArgs( trailingOnly = TRUE )
+if( length(args) > 0 ) {
+    
+    print("Erase everything and re-download? Press Enter to skip, yes to download." )
+    answer <- readLines( "stdin", n=1 )
+    
+    if( answer == "yes" ) {
+        print( "OK. Please insert password.")
+        system("rm -f ~/edm/weight-pred/model/run/*")
+        system( "scp -r daon@access.cims.nyu.edu:~/weight-pred/model/runs/ ." )
+    }
+}
 
-## Get the true values we were trying to predict
-df <- read.csv("originals/three_species.csv",
-                   header = TRUE,
-                   sep = "," )
-df <- lag_every_variable(df, n_lags)
-truth <- df$x_p1[pred[1]:pred[2]]
+rhos <- results( "ml", "y" )
+print( "Max Likelihood" )
+print( rhos )
 
-weighted_pred <- read.table("runs/weighted_predictions_x.csv",
-                            na = "NA",
-                            sep =",")
-                            ## row.names = FALSE,
-                            ## col.names = FALSE)
+rhos <- results( "exp", "y" )
+print( "Exponential Weights" )
+print( rhos )
 
-mve_pred <- read.table("runs/mve_predictions_x.csv",
-                       na = "NA",
-                       sep ="," )
+rhos <- results( "mve", "y" )
+print( "MVE" )
+print( rhos )
 
-## Calculate mean prediction skill per library size
-weighted_rho <- mean_cor( weighted_rho, truth, nrow = n_samp) )
-mve_rho      <- mean_cor(      mve_rho, truth, nrow = n_samp) )
-
-print( weighted_rho )
-print( mve_rho )
 ## x11()
 ## plot(lib_sizes,
 ##      weighted_rho,

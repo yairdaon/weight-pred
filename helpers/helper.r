@@ -5,9 +5,7 @@ mean_cor <- function(X,
                      y,
                      nrows = nrow(X))
 {
-    print( dim(X) )
-    print(length(y))
-    rhos  <- cor( t(as.matrix(X)), y, use = "complete.obs" )
+    rhos  <- cor( t(as.matrix(X)), y, use = "pairwise.complete.obs" )
     means <- colMeans( matrix(rhos, nrow = nrows ) )
     return( means )
 }
@@ -168,7 +166,7 @@ true_cor <- function(x, y, mu, sig ) {
     x <- descale(x, mu = mu, sig = sig )
     y <- descale(y, mu = mu, sig = sig )
 
-    return( cor(x, y, use = "complete.obs" ) )
+    return( cor(x, y, use = "pairwise.complete.obs" ) )
 }
 
 bloom_or_not_days <- function(df,

@@ -2,35 +2,26 @@
 library(rEDM)
 library(zoo)
 source( "../helpers/helper.r" )
+source( "../helpers/mve.r" )
 
 save_predictions <- function(filename = stop("File name must be provided!"),
-                             variables = names(raw_df), 
+                             variables = NULL, 
                              E = 3, ## Embedding dimension of the system.
                              n_lags = E, ## 0,-1, ..., -n_lags
                              n_samp = 200, ## Number of random libraries, should be in the hundreds
                              lib = c(501:2001),  ## Library set.
                              pred = c(2501,3000), ## Prediciton set.
                              lib_sizes = (1:15)*10,     ## Library changes in size and is also random
-                             method = "we"
+                             method = "uniform"
                              )
 {
-    if( method == "we" )
-    {
-        source( "../helpers/we.r" )
-        pred_func <- we
-    }
-    else if( method == "mve" )
-    {
-        source( "../helpers/mve.r" )
-        pred_func <- mve
-    }
-    else
-        stop( "Choose method to be 'me' or 'mve'" )
-    
     ## Load data 
     raw_df <- read.csv(filename,
                        header = TRUE,
                        sep = "," )
+
+    if( is.null( variables ) )
+        variables <- names( raw_df )
     
     ## Rescale the data frame and keep track of the normalizing
     ## factors.
@@ -66,11 +57,12 @@ save_predictions <- function(filename = stop("File name must be provided!"),
                 lib_ind  <- lib_ind + 1    
 
                 ## Find the MVE prediction
-                prediction <- pred_func(df, ## lagged and scaled.
-                                        curr_var,
-                                        rand_lib, ## Library set.
-                                        pred, ## Prediciton set.
-                                        combinations)
+                prediction <- mve(df, ## lagged and scaled.
+                                  curr_var,
+                                  rand_lib, ## Library set.
+                                  pred, ## Prediciton set.
+                                  combinations,
+                                  method )
                 
                 ## Move prediciton to original coordinates
                 prediction <- descale(prediction, mus$curr_var, sigs$curr_var)
@@ -111,12 +103,12 @@ system("rm -f run/*")
 
 save_predictions(file = "originals/three_species.csv",
                  variables = c( "y" ),
-                 E = 3, ## Embedding dimension of the system.
-                 n_lags = 3, ## 0, -1,..., -(n_lags-1)
-                 n_samp = 5, ## Number of random libraries, should be in the hundreds
+                 E = 2, ## Embedding dimension of the system.
+                 n_lags = 2, ## 0, -1,..., -(n_lags-1)
+                 n_samp = 3, ## Number of random libraries, should be in the hundreds
                  lib = c(501,2001),  ## Library set.
-                 pred = c(2501,3000), ## Prediciton set.
-                 lib_sizes = (2:4)*10,
-             	 method = "we" ## Library sizes
-            )
+                 pred = c(2501,2505), ## Prediciton set.
+                 lib_sizes = (2:4)*20,
+             	 method = "minvar" ## Library sizes
+                 )
 
