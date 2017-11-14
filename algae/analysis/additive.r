@@ -2,6 +2,9 @@
 library(rEDM)
 source( "helpers/plotting.r" )
 
+## Consider all possible sums of to models, check if it predicts
+## better.
+
 args <- commandArgs(trailingOnly = TRUE)
 args <- paste( unlist(args), collapse = " " )
 if( length(args) != 0 ) {

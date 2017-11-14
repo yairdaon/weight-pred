@@ -42,7 +42,7 @@ mve <- function(df, ## with lagged and scaled variables.
                 lib,  ## Library set.
                 pred, ## Prediciton set.
                 combinations, ## Produced by make_combintaions.
-                method = "uniform")       
+                method)       
 {
     ## Useful variables to have
     target  <- paste0( variable, "_p1" )
@@ -104,11 +104,6 @@ mve <- function(df, ## with lagged and scaled variables.
     best <- ord[ 1 : ceiling(sqrt(length(ord))) ]
     pred_table <- pred_table[ best, ]
     var_table  <- var_table [ best, ]
-
-    ## Fix bad stuff. This is ad-hoc and I don't like it.
-    bad <- which( (var_table == 0) || is.na(pred_table) || is.nan(pred_table) )
-    var_table [ bad ] <- Inf
-    pred_table[ bad ] <- 0
     
     if( method == "uniform" )
         weights <- matrix( 1, ncol = ncol(var_table), nrow = nrow(var_table) )
@@ -118,6 +113,12 @@ mve <- function(df, ## with lagged and scaled variables.
         weights <- exp( -var_table )
     else
         stop( paste0("Unknown weighting scheme '", method, "'" ) )
+
+    ## Fix bad stuff. This is ad-hoc and I don't like it.
+    bad <- which( (var_table == 0) || is.na(pred_table) || is.nan(pred_table) )
+    weights   [ bad ] <- 0
+    pred_table[ bad ] <- 0
+    
     prediction <- colSums(weights * pred_table) / colSums(weights) ## Weighted average
     return( prediction )
            
