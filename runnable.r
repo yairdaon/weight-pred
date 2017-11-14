@@ -3,6 +3,7 @@ library(rEDM)
 library(zoo)
 source( "helpers/helper.r" )
 source( "helpers/mve.r" )
+sessionInfo()
 
 save_predictions <- function(filename = stop("File name must be provided!"),
                              variables = NULL, 
@@ -98,9 +99,12 @@ save_predictions <- function(filename = stop("File name must be provided!"),
          file = paste0("model/runs/", method, "_parameters.Rdata") )
     
 }
+## Clean shit up
+system("rm -f model/runs/*")
 
-system("rm -f model/run/*")
-
+args <- commandArgs( trailingOnly = TRUE )
+if( length( args ) > 0 )
+{
 save_predictions(file = "model/originals/three_species.csv",
                  variables = c( "y" ),
                  E = 2, ## Embedding dimension of the system.
@@ -109,7 +113,7 @@ save_predictions(file = "model/originals/three_species.csv",
                  lib = c(501,2001),  ## Library set.
                  pred = c(2501,2505), ## Prediciton set.
                  lib_sizes = (2:4)*20,
-             	 method = "exp" ## Library sizes
+             	 method = "uniform"
                  )
 
 save_predictions(file = "model/originals/three_species.csv",
@@ -120,7 +124,7 @@ save_predictions(file = "model/originals/three_species.csv",
                  lib = c(501,2001),  ## Library set.
                  pred = c(2501,2505), ## Prediciton set.
                  lib_sizes = (2:4)*20,
-             	 method = "minvar" ## Library sizes
+             	 method = "minvar"
                  )
 
 save_predictions(file = "model/originals/three_species.csv",
@@ -130,7 +134,24 @@ save_predictions(file = "model/originals/three_species.csv",
                  n_samp = 3, ## Number of random libraries, should be in the hundreds
                  lib = c(501,2001),  ## Library set.
                  pred = c(2501,2505), ## Prediciton set.
-                 lib_sizes = (2:4)*20,
-             	 method = "uniform" ## Library sizes
+                 lib_sizes = (2:4)*20, ## Library sizes
+             	 method = "exp"
+                 )
+} else {
+
+save_predictions(file = "model/originals/three_species.csv",
+                 variables = c( "y" ),
+             	 method = "uniform" 
                  )
 
+save_predictions(file = "model/originals/three_species.csv",
+                 variables = c( "y" ),
+             	 method = "exp" 
+                 )
+
+save_predictions(file = "model/originals/three_species.csv",
+                 variables = c( "y" ),
+             	 method = "min_var" 
+                 )
+
+}
