@@ -116,7 +116,8 @@ mve <- function(df, ## with lagged and scaled variables.
         weights <- 1 / var_table 
     else if ( method == "exp" )
         weights <- exp( -var_table )
-    
+    else
+        stop( paste0("Unknown weighting scheme '", method, "'" ) )
     prediction <- colSums(weights * pred_table) / colSums(weights) ## Weighted average
     return( prediction )
            

@@ -32,8 +32,8 @@ if( length(args) > 0 ) {
     
     if( answer == "yes" ) {
         print( "OK. Please insert password.")
-        system("rm -f ~/edm/weight-pred/model/run/*")
-        system( "scp -r daon@access.cims.nyu.edu:~/weight-pred/model/runs/ ." )
+        system("rm -f ~/edm/weight-pred/model/runs/*")
+        system( "scp -r daon@access.cims.nyu.edu:~/weight-pred/model/runs/ ~/edm/weight-pred/model/runs/" )
     }
 }
 
@@ -43,23 +43,23 @@ exponential <- results( "exp",     variable )
 uniform     <- results( "uniform", variable )
 
 x11()
-plot(minvar$lib_sizes,
-     minvar$rhos,
+plot(exponential$lib_sizes,
+     exponential$rhos,
      type = "l",
      col = "black",
      xlab = "Library size",
      ylab = "Prediction skill",
-     ylim = c(0.5,1)
+     ylim = c(0.75,1)
      )
-lines(exponential$lib_sizes,
-      exponential$rhos,
-      col = "red" )
+## lines(minvar$lib_sizes,
+##       minvar$rhos,
+##       col = "red" )
 lines(uniform$lib_sizes,
       uniform$rhos,
       col = "blue" )
 title(paste0("Predicting ", variable) )
 legend( x = "topleft",
-       legend = c( "Min-Var weights", "Exp(-Var)", "Uniform MVE" ),
+       legend = c("Exp(-Var)", "Min-Var weights", "Uniform MVE" ),
        col = c( "black", "red", "blue" ),
        lwd = 1)
 hold(1)

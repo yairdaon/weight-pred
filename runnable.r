@@ -9,10 +9,10 @@ save_predictions <- function(filename = stop("File name must be provided!"),
                              variables = NULL, 
                              E = 3, ## Embedding dimension of the system.
                              n_lags = E, ## 0,-1, ..., -n_lags
-                             n_samp = 100, ## Number of random libraries, should be in the hundreds
+                             n_samp = 150, ## Number of random libraries, should be in the hundreds
                              lib = c(501:2001),  ## Library set.
                              pred = c(2501,3000), ## Prediciton set.
-                             lib_sizes = (1:6)*20,     ## Library changes in size and is also random
+                             lib_sizes = (1:15)*10,     ## Library changes in size and is also random
                              method = "uniform"
                              )
 {
@@ -151,7 +151,7 @@ save_predictions(file = "model/originals/three_species.csv",
 
 save_predictions(file = "model/originals/three_species.csv",
                  variables = c( "y" ),
-             	 method = "min_var" 
+             	 method = "minvar" 
                  )
 
 }
