@@ -1,17 +1,17 @@
 #!/usr/bin/Rscript
 library(rEDM)
 library(zoo)
-source( "../helpers/helper.r" )
-source( "../helpers/mve.r" )
+source( "helpers/helper.r" )
+source( "helpers/mve.r" )
 
 save_predictions <- function(filename = stop("File name must be provided!"),
                              variables = NULL, 
                              E = 3, ## Embedding dimension of the system.
                              n_lags = E, ## 0,-1, ..., -n_lags
-                             n_samp = 200, ## Number of random libraries, should be in the hundreds
+                             n_samp = 100, ## Number of random libraries, should be in the hundreds
                              lib = c(501:2001),  ## Library set.
                              pred = c(2501,3000), ## Prediciton set.
-                             lib_sizes = (1:15)*10,     ## Library changes in size and is also random
+                             lib_sizes = (1:6)*20,     ## Library changes in size and is also random
                              method = "uniform"
                              )
 {
@@ -76,7 +76,7 @@ save_predictions <- function(filename = stop("File name must be provided!"),
 
         ## Save data
         write.table(predictions,
-                    file = paste0("runs/", method, "_predictions_", curr_var, ".csv"),
+                    file = paste0("model/runs/", method, "_predictions_", curr_var, ".csv"),
                     quote = FALSE,
                     na = "NA",
                     row.names = FALSE,
@@ -95,13 +95,24 @@ save_predictions <- function(filename = stop("File name must be provided!"),
          lib,
          pred,
          lib_sizes,         
-         file = paste0("runs/", method, "_parameters.Rdata") )
+         file = paste0("model/runs/", method, "_parameters.Rdata") )
     
 }
 
-system("rm -f run/*")
+system("rm -f model/run/*")
 
-save_predictions(file = "originals/three_species.csv",
+save_predictions(file = "model/originals/three_species.csv",
+                 variables = c( "y" ),
+                 E = 2, ## Embedding dimension of the system.
+                 n_lags = 2, ## 0, -1,..., -(n_lags-1)
+                 n_samp = 3, ## Number of random libraries, should be in the hundreds
+                 lib = c(501,2001),  ## Library set.
+                 pred = c(2501,2505), ## Prediciton set.
+                 lib_sizes = (2:4)*20,
+             	 method = "exp" ## Library sizes
+                 )
+
+save_predictions(file = "model/originals/three_species.csv",
                  variables = c( "y" ),
                  E = 2, ## Embedding dimension of the system.
                  n_lags = 2, ## 0, -1,..., -(n_lags-1)
@@ -110,5 +121,16 @@ save_predictions(file = "originals/three_species.csv",
                  pred = c(2501,2505), ## Prediciton set.
                  lib_sizes = (2:4)*20,
              	 method = "minvar" ## Library sizes
+                 )
+
+save_predictions(file = "model/originals/three_species.csv",
+                 variables = c( "y" ),
+                 E = 2, ## Embedding dimension of the system.
+                 n_lags = 2, ## 0, -1,..., -(n_lags-1)
+                 n_samp = 3, ## Number of random libraries, should be in the hundreds
+                 lib = c(501,2001),  ## Library set.
+                 pred = c(2501,2505), ## Prediciton set.
+                 lib_sizes = (2:4)*20,
+             	 method = "uniform" ## Library sizes
                  )
 

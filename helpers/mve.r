@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 library(rEDM)
 library(zoo)
-source( "../helpers/helper.r" )
+source( "helpers/helper.r" )
 
 
 ## find_best_fraction <- function(df,
@@ -26,7 +26,6 @@ source( "../helpers/helper.r" )
 ##                                 target_column = target,
 ##                                 first_column_time = FALSE,
 ##                                 stats_only = FALSE,
-##                                 short_output = FALSE,
 ##                                 silent = TRUE )
 ##         pred_table[comb, ] <- output[[1]]$model_output$pred    [lib[1]:lib[2]] ## Prediction 
 ##         var_table [comb, ] <- output[[1]]$model_output$pred_var[lib[1]:lib[2]] ## Uncertainty
@@ -71,10 +70,19 @@ mve <- function(df, ## with lagged and scaled variables.
                              columns = cols, 
                              target_column = target, 
                              first_column_time = FALSE,
-                             short_output = FALSE,
                              stats_only = FALSE )
-        pred_table[comb, ] <- output[[1]]$model_output$pred    [pred[1]:pred[2]] ## Prediction 
-        var_table [comb, ] <- output[[1]]$model_output$pred_var[pred[1]:pred[2]] ## Uncertainty
+        ## times <- output$model_output[[1]]$time
+        ## troof <- output$model_output[[1]]$obs
+        
+        pred_table[ comb, ] <- output$model_output[[1]]$pred
+        var_table [ comb, ] <- output$model_output[[1]]$pred_var
+
+        ## bad <- which( var_table[ comb, ]  == 0  )
+        ## if( length( bad ) > 0 )
+        ## {
+        ##     print( lib )
+        ##     print( bad )
+        ## }
 
         ## Now we do CV, for the MVE ranking. All we need
         ## is the rho value for ranking.
@@ -97,6 +105,11 @@ mve <- function(df, ## with lagged and scaled variables.
     pred_table <- pred_table[ best, ]
     var_table  <- var_table [ best, ]
 
+    ## Fix bad stuff. This is ad-hoc and I don't like it.
+    bad <- which( (var_table == 0) || is.na(pred_table) || is.nan(pred_table) )
+    var_table [ bad ] <- Inf
+    pred_table[ bad ] <- 0
+    
     if( method == "uniform" )
         weights <- matrix( 1, ncol = ncol(var_table), nrow = nrow(var_table) )
     else if ( method == "minvar" )
@@ -105,19 +118,6 @@ mve <- function(df, ## with lagged and scaled variables.
         weights <- exp( -var_table )
     
     prediction <- colSums(weights * pred_table) / colSums(weights) ## Weighted average
-
-    ## Debugging...
-    if( any( is.na(prediction) ) ) {
-        print( paste0( "NAs:", sum(is.na(prediction)) ) )
-        print( "pred table:" )
-        print( pred_table )
-        print( "var table:" )
-        print( var_table )
-        print( "pred:" )
-        print( prediction )
-        print( lib )
-        print("")
-    }
     return( prediction )
            
 } ## Closes we <- function(...)
