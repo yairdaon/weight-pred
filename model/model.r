@@ -2,6 +2,7 @@
 library(rEDM)
 library(zoo)
 source( "../helpers/helper.r" )
+source( "../helpers/plotting.r" )
 
 ## Get a weighted prediction predictors and their uncertainty
 mve_pred <- function(pred_table,
@@ -50,7 +51,7 @@ uwe_pred <- function(pred_table, var_table)
 ##                   "field_highwire_adjunct_files/1/aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx")
 
 ## Load data and immediately normalize to zero mean and unit std dev
-df <-normalize_df(read.csv("originals/data.csv",
+df <-normalize_df(read.csv("originals/three_species.csv",
                            header = TRUE,
                            sep = "," )
                   )
@@ -59,10 +60,10 @@ df <-normalize_df(read.csv("originals/data.csv",
 n_vars <- ncol(df) ## == 3 cuz x, y, z
 E <- 3
 n_lags <- 3 ## Lags: 0, -1, -2
-n_samp <- 3 ##100 ## Number of random libraries
+n_samp <- 20 ##100 ## Number of random libraries
 pred <- c(2501,3000) ## Prediciton always constant
 pred_size <- pred[2] - pred[1] + 1
-lib_sizes <- (1:3)*10
+lib_sizes <- (1:5)*10
 
 ## Library changes in size and is also random
 uwe_results <- data.frame(lib_sizes = lib_sizes)
@@ -90,15 +91,16 @@ rhos       <- matrix( NA,  nrow = 2,      ncol = n_samp    )
 prediction <- numeric(                           pred_size )
 ranks      <- numeric(            n_comb                   )
 
-for (lib_ind in 1:nrow(results) )
+lib_ind <- 1
+for (lib_size in lib_sizes )
 {
     ## For every random library starting point
     for( smp in 1:n_samp )
     {
         ## Choose random lib of length exactly 100. Pred is always the same
         ## and they never overlap.
-        lib  <- sample(501:2001, 1)
-        lib  <- c(lib, lib + results$lib_size[lib_ind]- 1 )
+        lib  <- sample(501:2000, 1)
+        lib  <- c(lib, lib + lib_size - 1 )
         
         for( i in 1:n_comb )
         {
@@ -118,8 +120,8 @@ for (lib_ind in 1:nrow(results) )
                                  first_column_time = FALSE,
                                  stats_only = FALSE )
             
-            pred_table[i, ] <- output[[1]]$model_output$pred
-            var_table [i, ] <- output[[1]]$model_output$pred_var
+            pred_table[i, ] <- output$model_output[[1]]$pred
+            var_table [i, ] <- output$model_output[[1]]$pred_var
 
             ranks[i] <- block_lnlp(df,
                                    lib = lib,   ## lib is chosen randomly above
@@ -134,7 +136,7 @@ for (lib_ind in 1:nrow(results) )
        
         }
         
-        truth <- output[[1]]$model_output$obs
+        truth <- output$model_output[[1]]$obs
         uwe <- uwe_pred( pred_table, var_table)
         mve <- mve_pred( pred_table, ranks ) 
         rhos[1, smp] <- cor(uwe, truth, use = "complete.obs" )
@@ -147,21 +149,66 @@ for (lib_ind in 1:nrow(results) )
     uwe_results$med[lib_ind] <- quarts[2]
     uwe_results$top[lib_ind] <- quarts[3]
 
-    quarts <- quantile(rhos[2 ], probs = c(0.25,0.5,0.75))
+    quarts <- quantile(rhos[2, ], probs = c(0.25,0.5,0.75))
     mve_results$avg[lib_ind] <- mean(rhos[2, ])
     mve_results$bot[lib_ind] <- quarts[1]
     mve_results$med[lib_ind] <- quarts[2]
     mve_results$top[lib_ind] <- quarts[3]
 
+    lib_ind <- lib_ind + 1
     
 }
 
 write.csv(uwe_results,
-          file = "data/uwe_rhos.csv")
+          file = "data/uwe.csv",
+          row.names = FALSE,
+          quote = FALSE,
+          na = "NA")
 
 write.csv(mve_results,
-          file = "data/mve_rhos.csv")
+          file = "data/mve.csv",
+          row.names = FALSE,
+          quote = FALSE,
+          na = "NA" )
+
+uwe_df <- read.csv("data/uwe.csv", header = TRUE, sep = "," )
+mve_df <- read.csv("data/mve.csv", header = TRUE, sep = "," )
+
+pdf("plots/predictions.pdf")
+plot(uwe_df$lib_sizes,
+     uwe_df$avg,
+     type = "l",
+     lty = 1,
+     col = "red",
+     ylim = c(0.2,1),
+     main = "Skill for UWE and MVE",
+     xlab = "Library size",
+     ylab = "skill(rho)")
+lines(uwe_df$lib_sizes,
+      uwe_df$bot,
+      lty = 3,
+      col = "red")
+lines(uwe_df$lib_sizes,
+      uwe_df$top,
+      lty = 3,
+      col = "red")
 
 
-## noo <- read.csv("data/rhos.csv", header = TRUE, sep = "," )
-## print(noo)
+lines(mve_df$lib_sizes,
+      mve_df$avg,
+      lty = 1,
+      col = "blue")
+lines(mve_df$lib_sizes,
+      mve_df$bot,
+      lty = 3,
+      col = "blue")
+lines(mve_df$lib_sizes,
+      mve_df$top,
+      lty = 3,
+      col = "blue")
+
+legend(x = "topleft",
+       legend = c("UWE", "MVE" ),
+       col = c( "red", "blue" ),
+       lwd = 1)
+dev.off()
