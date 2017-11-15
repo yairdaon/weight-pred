@@ -4,8 +4,17 @@ library(zoo)
 source( "../helpers/helper.r" )
 
 ## Get a weighted prediction predictors and their uncertainty
-weighted_prediction <- function(var_table,
-                                pred_table)
+mve_pred <- function(pred_table,
+                rhos)
+{
+    ord <- order( rhos, decreasing = TRUE )
+    ind <- ord[ 1 : ceiling(sqrt(length(rhos))) ]
+    ret <- colMeans( pred_table[ ind, ] )
+    return( ret )
+}
+
+## Get a uncertainty-weighted prediction
+uwe_pred <- function(pred_table, var_table)
 {
     ## Sanity check
     stopifnot(
@@ -56,11 +65,8 @@ pred_size <- pred[2] - pred[1] + 1
 lib_sizes <- (1:3)*10
 
 ## Library changes in size and is also random
-results <- data.frame(lib_sizes = lib_sizes)
-results$avg <- numeric(nrow(results))
-results$top <- numeric(nrow(results))
-results$med <- numeric(nrow(results))
-results$bot <- numeric(nrow(results))
+uwe_results <- data.frame(lib_sizes = lib_sizes)
+mve_results <- data.frame(lib_sizes = lib_sizes)
 
 ## Craeate lags for every variable and make y_p1
 df <- lag_every_variable(df, n_lags)
@@ -78,11 +84,11 @@ n_comb <- choose( n_vars*n_lags, E )- choose(n_vars*(n_lags-1), E )
 combinations <- combinations[ ,1:n_comb ]
 
 ## Preallocate memory for predictions and uncertainties
-pred_table  <- matrix( NA,  nrow = n_comb, ncol = pred_size )
-var_table   <- matrix( Inf, nrow = n_comb, ncol = pred_size )
-rhos        <- rep   ( NA,         n_samp                   )
-prediction  <- numeric(                           pred_size )
-
+pred_table <- matrix( NA,  nrow = n_comb, ncol = pred_size )
+var_table  <- matrix( Inf, nrow = n_comb, ncol = pred_size )
+rhos       <- matrix( NA,  nrow = 2,      ncol = n_samp    )
+prediction <- numeric(                           pred_size )
+ranks      <- numeric(            n_comb                   )
 
 for (lib_ind in 1:nrow(results) )
 {
@@ -110,40 +116,51 @@ for (lib_ind in 1:nrow(results) )
                                  columns = cols, 
                                  target_column = 1, ## == y_p1
                                  first_column_time = FALSE,
-                                 short_output = TRUE,
                                  stats_only = FALSE )
-
-            time <- output[[1]]$model_output$time
-            pr   <- output[[1]]$model_output$pred
-            vars <- output[[1]]$model_output$pred_var
-            rho <- output[[1]]$stats$rho
-                    
-            calc_rho <- cor(pr, y_p1[time], use = "complete.obs" ) 
             
-            ## Not sure why these are not exactly equal...
-            ## if(  abs(calc_rho-rho) > 1e-14 )
-            ##     stop( calc_rho - rho )
+            pred_table[i, ] <- output[[1]]$model_output$pred
+            var_table [i, ] <- output[[1]]$model_output$pred_var
 
-            ## Save ALL data.
-            pred_table[i, ] <- pr 
-            var_table [i, ] <- vars
-            
+            ranks[i] <- block_lnlp(df,
+                                   lib = lib,   ## lib is chosen randomly above
+                                   pred = lib, ## pred is ALWAYS the same
+                                   method = "simplex",
+                                   tp = 0, ## Zero step cuz it is built into y_p1
+                                   columns = cols, 
+                                   target_column = 1, ## == y_p1
+                                   first_column_time = FALSE,
+                                   ##short_output = TRUE,
+                                   stats_only = TRUE )$rho
+       
         }
         
-        prediction <- weighted_prediction(var_table, pred_table)
-        rhos[smp]  <- cor(prediction, y_p1[time], use = "complete.obs" )
+        truth <- output[[1]]$model_output$obs
+        uwe <- uwe_pred( pred_table, var_table)
+        mve <- mve_pred( pred_table, ranks ) 
+        rhos[1, smp] <- cor(uwe, truth, use = "complete.obs" )
+        rhos[2, smp] <- cor(mve, truth, use = "complete.obs" )
     }
 
-    quarts <- quantile(rhos, probs = c(0.25,0.5,0.75))
+    quarts <- quantile(rhos[1, ], probs = c(0.25,0.5,0.75))
+    uwe_results$avg[lib_ind] <- mean(rhos[1, ])
+    uwe_results$bot[lib_ind] <- quarts[1]
+    uwe_results$med[lib_ind] <- quarts[2]
+    uwe_results$top[lib_ind] <- quarts[3]
 
-    results$avg[lib_ind] <- mean(rhos)
-    results$bot[lib_ind] <- quarts[1]
-    results$med[lib_ind] <- quarts[2]
-    results$top[lib_ind] <- quarts[3]
+    quarts <- quantile(rhos[2 ], probs = c(0.25,0.5,0.75))
+    mve_results$avg[lib_ind] <- mean(rhos[2, ])
+    mve_results$bot[lib_ind] <- quarts[1]
+    mve_results$med[lib_ind] <- quarts[2]
+    mve_results$top[lib_ind] <- quarts[3]
+
+    
 }
 
-write.csv(results,
-          file = "data/rhos.csv")
+write.csv(uwe_results,
+          file = "data/uwe_rhos.csv")
+
+write.csv(mve_results,
+          file = "data/mve_rhos.csv")
 
 
 ## noo <- read.csv("data/rhos.csv", header = TRUE, sep = "," )
