@@ -24,16 +24,36 @@ uwe_pred <- function(pred_table, var_table)
     ord <- colOrder( var_table )
 
     ## Take best sqrt(k), according to the MVE heuristics
-    best <- ceiling(0.15*(nrow(var_table)))
+    best <- ceiling(sqrt(nrow(var_table)))
     ind <- ord[1:best, ]
     
     w <- exp(-matrix(var_table [ind], nrow = best, ncol = ncol(var_table) ) )
-    ## w <- 1  / matrix(var_table [ind], nrow = best, ncol = ncol(var_table) )
     p <-      matrix(pred_table[ind], nrow = best, ncol = ncol(var_table) )
 
     return( colSums( w*p ) / colSums(w) )
     
 }
+
+dummy_df <- data.frame( lib_sizes = numeric(0),
+	    		mean = numeric(0),
+			bot  = numeric(0),
+			med  = numeric(0),
+ 			top  = numeric(0))
+write.table(dummy_df,
+    	    file = "data/uwe.csv",
+            sep = ",",
+            append = FALSE,
+            quote = FALSE,
+            col.names = TRUE,
+            row.names = FALSE)
+write.table(dummy_df,
+    	    file = "data/mve.csv",
+            sep = ",",
+            append = FALSE,
+            quote = FALSE,
+            col.names = TRUE,
+            row.names = FALSE)
+
 
 
 ## If you want to download the file for some reason... don't!
@@ -50,10 +70,10 @@ df <-normalize_df(read.csv("originals/three_species.csv",
 n_vars <- ncol(df) ## == 3 cuz x, y, z
 E <- 3
 n_lags <- 3 ## Lags: 0, -1, -2
-n_samp <- 6 ##100 ## Number of random libraries
+n_samp <- 3##100 ## Number of random libraries
 pred <- c(2501, 3000) ##c(2501,3000) ## Prediciton always constant
 pred_size <- pred[2] - pred[1] + 1
-lib_sizes <- (3:5)*10
+lib_sizes <- (1:20)*5
 
 ## Library changes in size and is also random
 uwe_results <- data.frame(lib_sizes = lib_sizes)
@@ -86,14 +106,15 @@ for (lib_size in lib_sizes )
     ## For every random library starting point
     for( smp in 1:n_samp )
     {
-      
         
         ## Choose random lib of length exactly 100. Pred is always the same
         ## and they never overlap.
         lib  <- sample(501:2000, 1)
         lib  <- c(lib, lib + lib_size - 1 )
-        print( paste0("Sample ", smp, ", library ", lib[1], "-", lib[2] ) )
-        for( i in 1:n_comb )
+	if( smp %% 5 == 0 )
+ 	       print( paste0("Sample ", smp, ", library size == ", lib_size ) )
+        
+	for( i in 1:n_comb )
         {
             cols <- combinations[,i]
             
@@ -139,41 +160,41 @@ for (lib_size in lib_sizes )
         rhos[2, smp] <- cor(mve, truth, use = "complete.obs" )
     }
 
-    quarts <- quantile(rhos[1, ], probs = c(0.25,0.5,0.75))
-    uwe_results$avg[lib_ind] <- mean(rhos[1, ])
-    uwe_results$bot[lib_ind] <- quarts[1]
-    uwe_results$med[lib_ind] <- quarts[2]
-    uwe_results$top[lib_ind] <- quarts[3]
+    ## quarts <- quantile(rhos[1, ], probs = c(0.25,0.5,0.75))
+    ## uwe_results$avg[lib_ind] <- mean(rhos[1, ])
+    ## uwe_results$bot[lib_ind] <- quarts[1]
+    ## uwe_results$med[lib_ind] <- quarts[2]
+    ## uwe_results$top[lib_ind] <- quarts[3]
 
-    quarts <- quantile(rhos[2, ], probs = c(0.25,0.5,0.75))
-    mve_results$avg[lib_ind] <- mean(rhos[2, ])
-    mve_results$bot[lib_ind] <- quarts[1]
-    mve_results$med[lib_ind] <- quarts[2]
-    mve_results$top[lib_ind] <- quarts[3]
+    ## quarts <- quantile(rhos[2, ], probs = c(0.25,0.5,0.75))
+    ## mve_results$avg[lib_ind] <- mean(rhos[2, ])
+    ## mve_results$bot[lib_ind] <- quarts[1]
+    ## mve_results$med[lib_ind] <- quarts[2]
+    ## mve_results$top[lib_ind] <- quarts[3]
+    ## lib_ind <- lib_ind + 1
+    ## print( paste0( "Lib size == ", lib_size, ", UWE == ", mean(rhos[1, ]), ", MVE == ", mean(rhos[2, ]) ) )
 
-    lib_ind <- lib_ind + 1
-
+    probs <- c(0.25,0.5,0.75)
+    uwe_vec <- matrix( c( lib_size, mean(rhos[1,]), quantile(rhos[1, ], probs = probs) ), nrow = 5)
+    mve_vec <- matrix( c( lib_size, mean(rhos[2,]), quantile(rhos[2, ], probs = probs) ), nrow = 5 )
+    
+    write.table(uwe_vec,
+    	        file = "data/uwe.csv",
+                sep = ",",
+                append = TRUE, 
+                quote = FALSE,
+                col.names = FALSE)
+    write.table(mve_vec,
+    	        file = "data/mve.csv",
+                sep = ",",
+                append = TRUE, 
+                quote = FALSE,
+                col.names = FALSE)
     
 }
 
-write.csv(uwe_results,
-          file = "data/uwe.csv",
-          row.names = FALSE,
-          quote = FALSE,
-          na = "NA")
-
-write.csv(mve_results,
-          file = "data/mve.csv",
-          row.names = FALSE,
-          quote = FALSE,
-          na = "NA" )
-
 uwe_df <- read.csv("data/uwe.csv", header = TRUE, sep = "," )
 mve_df <- read.csv("data/mve.csv", header = TRUE, sep = "," )
-
-print( "UWE, then MVE:" )
-print( uwe_df$avg )
-print( mve_df$avg )
 
 pdf("plots/predictions.pdf")
 plot(uwe_df$lib_sizes,
