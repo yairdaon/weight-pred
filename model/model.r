@@ -175,21 +175,23 @@ for (lib_size in lib_sizes )
     ## print( paste0( "Lib size == ", lib_size, ", UWE == ", mean(rhos[1, ]), ", MVE == ", mean(rhos[2, ]) ) )
 
     probs <- c(0.25,0.5,0.75)
-    uwe_vec <- matrix( c( lib_size, mean(rhos[1,]), quantile(rhos[1, ], probs = probs) ), nrow = 5)
-    mve_vec <- matrix( c( lib_size, mean(rhos[2,]), quantile(rhos[2, ], probs = probs) ), nrow = 5 )
+    uwe_vec <- matrix( c( lib_size, mean(rhos[1,]), quantile(rhos[1, ], probs = probs) ), ncol = 5)
+    mve_vec <- matrix( c( lib_size, mean(rhos[2,]), quantile(rhos[2, ], probs = probs) ), ncol = 5 )
     
     write.table(uwe_vec,
     	        file = "data/uwe.csv",
                 sep = ",",
                 append = TRUE, 
                 quote = FALSE,
-                col.names = FALSE)
+                col.names = FALSE,
+                row.names = FALSE)
     write.table(mve_vec,
     	        file = "data/mve.csv",
                 sep = ",",
                 append = TRUE, 
                 quote = FALSE,
-                col.names = FALSE)
+                col.names = FALSE,
+                row.names = FALSE)
     
 }
 
