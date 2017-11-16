@@ -2,7 +2,6 @@
 library(rEDM)
 library(zoo)
 source( "../helpers/helper.r" )
-source( "../helpers/plotting.r" )
 
 ## Get a weighted prediction predictors and their uncertainty
 mve_pred <- function(pred_table,
@@ -17,32 +16,23 @@ mve_pred <- function(pred_table,
 ## Get a uncertainty-weighted prediction
 uwe_pred <- function(pred_table, var_table)
 {
-    ## Sanity check
-    stopifnot(
-        nrow(var_table) == nrow(pred_table) &&
-        ncol(var_table) == ncol(pred_table)
-    )
+    ## Get rid of those zero variance predictions.
+    var_table[ var_table == 0 ] <- NA
+    
+    ## Get increasing order, so lower uncertainties
+    ## have lower indices.
+    ord <- colOrder( var_table )
 
-    ## Meomry allocation
-    ret <- numeric(ncol(pred_table))
+    ## Take best sqrt(k), according to the MVE heuristics
+    best <- ceiling(0.15*(nrow(var_table)))
+    ind <- ord[1:best, ]
+    
+    w <- exp(-matrix(var_table [ind], nrow = best, ncol = ncol(var_table) ) )
+    ## w <- 1  / matrix(var_table [ind], nrow = best, ncol = ncol(var_table) )
+    p <-      matrix(pred_table[ind], nrow = best, ncol = ncol(var_table) )
 
-    ## Avoid loops at all costs!!! Or be lazy!!
-    for( i in 1:ncol(pred_table) )
-    {            
-        ## Extract uncertainty of all predictors and find its
-        v   <- var_table[ , i]
-        ind <- order( v )[1:ceiling(sqrt(nrow(var_table)))]
-        
-        ## Find who is in, get corresponding predictions and get
-        ## corresponding weights, both exponential and precision.
-        p <- pred_table[ind, i]
-        w <- exp(-v[ind])
-            
-        ## Weight the predictors according to the weights and store
-        ## the weighted prediction in the preallocated matrices.
-        ret[i] <- sum(p * w) / sum(w)
-    }
-    return( ret )
+    return( colSums( w*p ) / colSums(w) )
+    
 }
 
 
@@ -60,10 +50,10 @@ df <-normalize_df(read.csv("originals/three_species.csv",
 n_vars <- ncol(df) ## == 3 cuz x, y, z
 E <- 3
 n_lags <- 3 ## Lags: 0, -1, -2
-n_samp <- 20 ##100 ## Number of random libraries
-pred <- c(2501,3000) ## Prediciton always constant
+n_samp <- 6 ##100 ## Number of random libraries
+pred <- c(2501, 3000) ##c(2501,3000) ## Prediciton always constant
 pred_size <- pred[2] - pred[1] + 1
-lib_sizes <- (1:5)*10
+lib_sizes <- (3:5)*10
 
 ## Library changes in size and is also random
 uwe_results <- data.frame(lib_sizes = lib_sizes)
@@ -73,7 +63,6 @@ mve_results <- data.frame(lib_sizes = lib_sizes)
 df <- lag_every_variable(df, n_lags)
 y_p1 <- c( as.vector(lag(zoo(df$y),1)) , NA )
 df <- data.frame(y_p1 = y_p1, df )
-
 
 ## We know the allowed combinations must have one unlagged
 ## variable. By the way function combn is structured, these will be
@@ -97,11 +86,13 @@ for (lib_size in lib_sizes )
     ## For every random library starting point
     for( smp in 1:n_samp )
     {
+      
+        
         ## Choose random lib of length exactly 100. Pred is always the same
         ## and they never overlap.
         lib  <- sample(501:2000, 1)
         lib  <- c(lib, lib + lib_size - 1 )
-        
+        print( paste0("Sample ", smp, ", library ", lib[1], "-", lib[2] ) )
         for( i in 1:n_comb )
         {
             cols <- combinations[,i]
@@ -116,12 +107,17 @@ for (lib_size in lib_sizes )
                                  method = "simplex",
                                  tp = 0, ## Zero step cuz it is built into y_p1
                                  columns = cols, 
-                                 target_column = 1, ## == y_p1
+                                 target_column = "y_p1",
                                  first_column_time = FALSE,
                                  stats_only = FALSE )
             
-            pred_table[i, ] <- output$model_output[[1]]$pred
-            var_table [i, ] <- output$model_output[[1]]$pred_var
+            val <- output$model_output[[1]]$pred
+            err <- output$model_output[[1]]$pred_var
+
+            stopifnot( length(val) == pred[2] -pred[1] + 1 )
+            stopifnot( length(err) == pred[2] -pred[1] + 1 )
+            pred_table[i, ] <- val
+            var_table [i, ] <- err
 
             ranks[i] <- block_lnlp(df,
                                    lib = lib,   ## lib is chosen randomly above
@@ -129,7 +125,7 @@ for (lib_size in lib_sizes )
                                    method = "simplex",
                                    tp = 0, ## Zero step cuz it is built into y_p1
                                    columns = cols, 
-                                   target_column = 1, ## == y_p1
+                                   target_column = "y_p1",
                                    first_column_time = FALSE,
                                    ##short_output = TRUE,
                                    stats_only = TRUE )$rho
@@ -156,6 +152,7 @@ for (lib_size in lib_sizes )
     mve_results$top[lib_ind] <- quarts[3]
 
     lib_ind <- lib_ind + 1
+
     
 }
 
@@ -173,6 +170,10 @@ write.csv(mve_results,
 
 uwe_df <- read.csv("data/uwe.csv", header = TRUE, sep = "," )
 mve_df <- read.csv("data/mve.csv", header = TRUE, sep = "," )
+
+print( "UWE, then MVE:" )
+print( uwe_df$avg )
+print( mve_df$avg )
 
 pdf("plots/predictions.pdf")
 plot(uwe_df$lib_sizes,

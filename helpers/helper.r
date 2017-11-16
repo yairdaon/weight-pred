@@ -1,5 +1,33 @@
 library( zoo )
 
+colOrder <- function(X, decreasing = FALSE)
+{
+    ## Get sorting indices for every column
+    ord <- apply(X, 2, order, decreasing = decreasing)
+
+    ## Shift them so they sort every column of entire matrix
+    ord <- t( t(ord) + ( 0:(ncol(X)-1) )*nrow(X) )
+    
+    return( ord )
+}
+
+## Test for above procedure
+m <- 6
+n <- 9
+X <- matrix(sample(1:20, m*n, replace = TRUE ), nrow = m, ncol = n )
+X[ 4 ] <- NA 
+X[ 9 ] <- NA 
+Y <- matrix(X[colOrder(X)], ncol = ncol(X))
+
+## Check Y columns are sorted and that they have same values in
+## corresponding X columns
+for( i in 1:ncol(Y) )
+{
+    stopifnot( !is.unsorted(Y[,i], na.rm = TRUE ) )
+    stopifnot( all (Y[,i] %in% X[,i]) )
+    stopifnot( all (X[,i] %in% Y[,i]) )
+}
+
 ## Craeate lags for every variable
 lag_every_variable <- function(df, n_lags)
 {
