@@ -3,7 +3,20 @@ library(rEDM)
 source( "helpers/helper.r" )
 source( "helpers/plotting.r" )
 
+
+
+
+
 ## Load the data: df, chl_threshold and norm_threshold.
+## args <- commandArgs(trailingOnly = TRUE)
+## if( length(args) == 0 ) {
+##     xtension <- "full"
+## } else if( grepl("bloom", args, ignore.case = TRUE ) ) {
+##     xtension <- "bloom"
+## } else {
+##     stop( "Choose bloom or full!" )
+## }
+
 load( "data/leftover_predictions_full_loocv.Rdata" )
 load( "data/processed_block.Rdata" )
 

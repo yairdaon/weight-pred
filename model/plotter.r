@@ -1,7 +1,8 @@
 #!/usr/bin/Rscript
 source( "../helpers/plotting.r" )
-uwe_df <- read.csv("data/uwe.csv", header = TRUE, sep = "," )
-mve_df <- read.csv("data/mve.csv", header = TRUE, sep = "," )
+
+uwe_df <- read.csv("runs/uwe_y.csv", header = TRUE, sep = "," )
+mve_df <- read.csv("runs/mve_y.csv", header = TRUE, sep = "," )
 
 pdf("plots/predictions.pdf")
 plot(uwe_df$lib_sizes,

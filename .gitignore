@@ -4,12 +4,21 @@ algae/plots/*
 
 model/data/*
 model/plots/*
+model/runs/*
+
+roti/
 
 tmp.r
-.Rhistory
+*.Rhistory
 *~
 *.jpg
-
+*.csv
+*.Rdata
+*.txt
+*.Rdata
+*.pdf
+Makefile
+*.out
 
 paper/*
 !paper/paper.tex
