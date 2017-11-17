@@ -111,7 +111,7 @@ save_predictions <- function(filename = stop("File name must be provided!"),
 system("rm -f model/runs/*")
 
 args <- commandArgs( trailingOnly = TRUE )
-if( length( args ) > 0 )
+if( args == "test" )
 {
     for( num_neighbors in 1:4 )
     {
@@ -139,19 +139,12 @@ if( length( args ) > 0 )
                          num_neighbors = num_neighbors
                          )
     }
-} else {
-    for( num_neighbors in 1:4 )
-        {
-        save_predictions(file = "model/originals/three_species.csv",
-                         variables = c( "y" ),
-                         method = "mve",
-                         num_neighbors = num_neighbors
-                         )
-        
-        save_predictions(file = "model/originals/three_species.csv",
-                         variables = c( "y" ),
-                         method = "uwe",
-                         num_neighbors = num_neighbors
-                         )
-        }
 }
+else
+    save_predictions(file = "model/originals/three_species.csv",
+                     variables = c( "y" ),
+                     method = args[1],
+                     num_neighbors = as.numeric(args[2])
+                     )
+    
+
