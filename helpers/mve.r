@@ -38,7 +38,8 @@ uwe <- function(df, ## lagged and scaled.
                 variable,
                 lib, ## Library set.
                 pred, ## Prediciton set.
-                combinations)
+                combinations,
+                num_neighbors)
 
 {
     ## Useful variables to have
@@ -64,6 +65,7 @@ uwe <- function(df, ## lagged and scaled.
                              method = "simplex",
                              tp = 0, ## Lags built into df
                              columns = cols, 
+                             num_neighbors = num_neighbors,
                              target_column = target, 
                              first_column_time = FALSE,
                              stats_only = FALSE )
@@ -90,7 +92,6 @@ uwe <- function(df, ## lagged and scaled.
     ret <- colSums( w*p ) / colSums(w)
 
     attr(ret, "rho") <- cor( ret, truth, use = "complete.obs" )
-    ## Set attribute to ret of rho
     return( ret )
 }
 
@@ -98,7 +99,8 @@ mve <- function(df, ## with lagged and scaled variables.
                 variable, ## For which we wish to make predictions.
                 lib,  ## Library set.
                 pred, ## Prediciton set.
-                combinations) ## Produced by make_combintaions.       
+                combinations,
+                num_neighbors) ## Produced by make_combintaions.       
 {
     ## Useful variables to have
     target  <- paste0( variable, "_p1" )
@@ -122,7 +124,8 @@ mve <- function(df, ## with lagged and scaled variables.
                              pred = pred, 
                              method = "simplex",
                              tp = 0, ## Lags built into df
-                             columns = cols, 
+                             columns = cols,
+                             num_neighbors = num_neighbors,
                              target_column = target, 
                              first_column_time = FALSE,
                              stats_only = FALSE )
@@ -148,7 +151,6 @@ mve <- function(df, ## with lagged and scaled variables.
     ret <- colMeans( pred_table[ ind, ] )
 
     attr(ret, "rho") <- cor( ret, truth, use = "complete.obs" )
-    ## Set attribute to ret of rho
     return( ret )
 }
 

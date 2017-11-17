@@ -15,9 +15,9 @@ save_predictions <- function(filename = stop("File name must be provided!"),
                              n_samp = 150, ## Number of random libraries, should be in the hundreds
                              lib = c(501:2001),  ## Library set.
                              pred = c(2501,3000), ## Prediciton set.
-                             lib_sizes = (1:15)*10,     ## Library changes in size and is also random
-                             method = "mve"
-                             )
+                             lib_sizes = (1:12)*10,     ## Library changes in size and is also random
+                             method = "mve",
+                             num_neighbors = E+1 )
 {
     ## Save the parameters so we know what parameters we were using
     save(filename,
@@ -61,9 +61,10 @@ save_predictions <- function(filename = stop("File name must be provided!"),
     ## Do the analysis for every variable. 
     for( curr_var in variables )
     {
+        filename <- paste0("model/runs/", method, "_", curr_var, "_", num_neighbors,".csv")                
         empty_file(lib_sizes,
-                   filename = paste0("model/runs/", method, "_", curr_var, ".csv") )
-                    
+                   filename = filename )
+        
         for (lib_size in lib_sizes)
         {
             
@@ -81,7 +82,8 @@ save_predictions <- function(filename = stop("File name must be provided!"),
                                         curr_var,
                                         rand_lib, ## Library set.
                                         pred, ## Prediciton set.
-                                        combinations)
+                                        combinations,
+                                        num_neighbors)
                 
                 ## Move prediciton to original coordinates
                 rhos[smp] <- attr( prediction, "rho" )
@@ -90,7 +92,7 @@ save_predictions <- function(filename = stop("File name must be provided!"),
             
             vec <- matrix( c( lib_size, mean(rhos), quantile(rhos, probs = c(0.25,0.5,0.75)) ), nrow = 1)
             write.table(vec,
-                        file = paste0("model/runs/", method, "_", curr_var, ".csv"),
+                        file = filename, 
                         sep = ",",
                         append = TRUE, 
                         quote = FALSE,
@@ -111,40 +113,45 @@ system("rm -f model/runs/*")
 args <- commandArgs( trailingOnly = TRUE )
 if( length( args ) > 0 )
 {
-    save_predictions(file = "model/originals/three_species.csv",
-                     variables = c( "y" ),
-                     E = 2, ## Embedding dimension of the system.
-                     n_lags = 2, ## 0, -1,..., -(n_lags-1)
-                     n_samp = 3, ## Number of random libraries, should be in the hundreds
-                     lib = c(501,2001),  ## Library set.
-                     pred = c(2501,2505), ## Prediciton set.
-                     lib_sizes = (2:4)*20,
-                     method = "uwe"
-                     )
-    
-    save_predictions(file = "model/originals/three_species.csv",
-                     variables = c( "y" ),
-                     E = 2, ## Embedding dimension of the system.
-                     n_lags = 2, ## 0, -1,..., -(n_lags-1)
-                     n_samp = 3, ## Number of random libraries, should be in the hundreds
-                     lib = c(501,2001),  ## Library set.
-                     pred = c(2501,2505), ## Prediciton set.
-                     lib_sizes = (2:4)*20, ## Library sizes
-                     method = "mve"
-                     )
+    for( num_neighbors in 1:4 )
+    {
+        save_predictions(file = "model/originals/three_species.csv",
+                         variables = c( "y" ),
+                         E = 2, ## Embedding dimension of the system.
+                         n_lags = 2, ## 0, -1,..., -(n_lags-1)
+                         n_samp = 3, ## Number of random libraries, should be in the hundreds
+                         lib = c(501,2001),  ## Library set.
+                         pred = c(2501,3000), ## Prediciton set.
+                         lib_sizes = (2:4)*20,
+                         method = "uwe",
+                         num_neighbors = num_neighbors
+                         )
+        
+        save_predictions(file = "model/originals/three_species.csv",
+                         variables = c( "y" ),
+                         E = 2, ## Embedding dimension of the system.
+                         n_lags = 2, ## 0, -1,..., -(n_lags-1)
+                         n_samp = 3, ## Number of random libraries, should be in the hundreds
+                         lib = c(501,2001),  ## Library set.
+                         pred = c(2501,3000), ## Prediciton set.
+                         lib_sizes = (2:4)*20, ## Library sizes
+                         method = "mve",
+                         num_neighbors = num_neighbors
+                         )
+    }
 } else {
-    
-    save_predictions(file = "model/originals/three_species.csv",
-                     variables = c( "y" ),
-                     n_samp = 150,
-                     lib_sizes = (1:20)*5,
-                     method = "mve" 
-                     )
-    
-    save_predictions(file = "model/originals/three_species.csv",
-                     variables = c( "y" ),
-                     n_samp = 150,
-                     lib_sizes = (1:20)*5,
-                     method = "uwe" 
-                     )
+    for( num_neighbors in 1:4 )
+        {
+        save_predictions(file = "model/originals/three_species.csv",
+                         variables = c( "y" ),
+                         method = "mve",
+                         num_neighbors = num_neighbors
+                         )
+        
+        save_predictions(file = "model/originals/three_species.csv",
+                         variables = c( "y" ),
+                         method = "uwe",
+                         num_neighbors = num_neighbors
+                         )
+        }
 }

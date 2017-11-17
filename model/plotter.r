@@ -1,47 +1,52 @@
 #!/usr/bin/Rscript
 source( "../helpers/plotting.r" )
 
-uwe_df <- read.csv("runs/uwe_y.csv", header = TRUE, sep = "," )
-mve_df <- read.csv("runs/mve_y.csv", header = TRUE, sep = "," )
 
-pdf("plots/predictions.pdf")
-plot(uwe_df$lib_sizes,
-     uwe_df$mean,
-     type = "l",
-     lty = 1,
-     col = "red",
-     ylim = c(0.2,1),
-     main = "Skill for UWE and MVE",
-     xlab = "Library size",
-     ylab = "skill(rho)")
-lines(uwe_df$lib_sizes,
-      uwe_df$bot,
-      lty = 3,
-      col = "red")
-lines(uwe_df$lib_sizes,
-      uwe_df$top,
-      lty = 3,
-      col = "red")
+neighbors <- 1:4
+cols <- c( "red", "blue", "black", "green" )
 
 
-lines(mve_df$lib_sizes,
-      mve_df$mean,
-      lty = 1,
-      col = "blue")
-lines(mve_df$lib_sizes,
-      mve_df$bot,
-      lty = 3,
-      col = "blue")
-lines(mve_df$lib_sizes,
-      mve_df$top,
-      lty = 3,
-      col = "blue")
+for( method in c( "mve", "uwe" ) )
+{
+    load( paste0( "runs/", method, "_parameters.Rdata" ) )
+    pdf(paste0("plots/", method, ".pdf" ) )
+    plot(0,
+         0,         
+         main = paste0( toupper(method), "Skill for Different Numbers of Nearest Neighbors"),
+         xlab = "Library size",
+         ylab = "Skill(rho)",
+         xlim = c(min(lib_sizes),max(lib_sizes)),
+         ylim = c(0.5,1) 
+         )
+    
+    for( i in neighbors )
+    {
+        df <- read.csv(paste0("runs/", method, "_y_", i, ".csv"), header = TRUE, sep = "," )
+        
+        lines(df$lib_sizes,
+              df$mean,
+              type = "l",
+              lty = 1,
+              col = i)
+        lines(df$lib_sizes,
+              df$bot,
+              lty = 3,
+              col = i)
+        lines(df$lib_sizes,
+              df$top,
+              lty = 3,
+              col = i)
+        
+    }
+    
+    grid(lwd = 1, lty = 1)
+    
+    legend(x = "bottomright",
+           title = "# nn",
+           legend = neighbors,
+           col = cols,
+           lwd = 1)
+    
+    dev.off()
 
-grid(lwd = 1, lty = 1)
-
-legend(x = "topleft",
-       legend = c("UWE", "MVE" ),
-       col = c( "red", "blue" ),
-       lwd = 1)
-
-dev.off()
+}
