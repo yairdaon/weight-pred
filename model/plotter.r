@@ -5,7 +5,7 @@ mve_df <- read.csv("data/mve.csv", header = TRUE, sep = "," )
 
 pdf("plots/predictions.pdf")
 plot(uwe_df$lib_sizes,
-     uwe_df$avg,
+     uwe_df$mean,
      type = "l",
      lty = 1,
      col = "red",
@@ -24,7 +24,7 @@ lines(uwe_df$lib_sizes,
 
 
 lines(mve_df$lib_sizes,
-      mve_df$avg,
+      mve_df$mean,
       lty = 1,
       col = "blue")
 lines(mve_df$lib_sizes,
@@ -36,8 +36,11 @@ lines(mve_df$lib_sizes,
       lty = 3,
       col = "blue")
 
+grid(lwd = 1, lty = 1)
+
 legend(x = "topleft",
        legend = c("UWE", "MVE" ),
        col = c( "red", "blue" ),
        lwd = 1)
+
 dev.off()
