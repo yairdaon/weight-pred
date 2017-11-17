@@ -136,65 +136,15 @@ if( length( args ) > 0 )
     
     save_predictions(file = "model/originals/three_species.csv",
                      variables = c( "y" ),
-                     n_samp = 50,
-                     lib_sizes = c(40, 80),
+                     n_samp = 150,
+                     lib_sizes = (1:20)*5,
                      method = "mve" 
                      )
     
     save_predictions(file = "model/originals/three_species.csv",
                      variables = c( "y" ),
-                     n_samp = 50,
-                     lib_sizes = c(40, 80),
+                     n_samp = 150,
+                     lib_sizes = (1:20)*5,
                      method = "uwe" 
                      )
-    
-    ## save_predictions(file = "model/originals/three_species.csv",
-    ##                  variables = c( "y" ),
-    ##                  n_samp = 50,
-    ##                  lib_sizes = c(40, 60, 80)
-    ##                  method = "minvar" 
-    ##                  )
 }
-
-## uwe_df <- read.csv("model/runs/uwe_y.csv", header = TRUE, sep = "," )
-## mve_df <- read.csv("model/runs/mve_y.csv", header = TRUE, sep = "," )
-
-## pdf("model/plots/predictions.pdf")
-## plot(uwe_df$lib_sizes,
-##      uwe_df$mean,
-##      type = "l",
-##      lty = 1,
-##      col = "red",
-##      ylim = c(0.2,1),
-##      main = "Skill for UWE and MVE",
-##      xlab = "Library size",
-##      ylab = "skill(rho)")
-## lines(uwe_df$lib_sizes,
-##       uwe_df$bot,
-##       lty = 3,
-##       col = "red")
-## lines(uwe_df$lib_sizes,
-##       uwe_df$top,
-##       lty = 3,
-##       col = "red")
-
-
-## lines(mve_df$lib_sizes,
-##       mve_df$mean,
-##       lty = 1,
-##       col = "blue")
-## lines(mve_df$lib_sizes,
-##       mve_df$bot,
-##       lty = 3,
-##       col = "blue")
-## lines(mve_df$lib_sizes,
-##       mve_df$top,
-##       lty = 3,
-##       col = "blue")
-
-## legend(x = "topleft",
-##        legend = c("UWE", "MVE" ),
-##        col = c( "red", "blue" ),
-##        lwd = 1)
-## dev.off()
-
