@@ -1,4 +1,3 @@
-#!/usr/bin/Rscript
 library( zoo )
 
 lag_every_variable <- function(df, max_lag )
@@ -57,25 +56,13 @@ respect_lib <- function(df, lib, max_lag)
         for( l in 1:(max_lag-1) )
         {
             col_ind <- n_vars + n*(max_lag-1) + l
-            row_ind <- lib[1] + 1:l - 1
+            row_ind <- lib[1] - 1 + (1:l)
             df[row_ind, col_ind] <- NA
         }
     
     return( df )
         
 }
-
-## df <- data.frame(x = c(1,4,5,8,7,8,4,2,5,2,5,6 ),
-##                  y = c(5,7,3,9,3,2,5,1,0,8,5,6 ),
-##                  z = c(2,5,2,6,2,5,9,7,4,7,2,8 ))
-## max_lag <- 4
-## n_vars <- ncol(df)
-## lib <- c(6,8)
-
-## df <- lag_every_variable(df, max_lag)
-##print(df)
-## df <- respect_lib( df, lib, max_lag )
-##print(df)
 
 
 empty_file <- function( filename )
@@ -94,23 +81,6 @@ colOrder <- function(X, decreasing = FALSE)
     ord <- t( t(ord) + ( 0:(ncol(X)-1) )*nrow(X) )
     
     return( ord )
-}
-
-## Test for above procedure
-## m <- 6
-## n <- 9
-## X <- matrix(sample(1:20, m*n, replace = TRUE ), nrow = m, ncol = n )
-## X[ 4 ] <- NA 
-## X[ 9 ] <- NA 
-## Y <- matrix(X[colOrder(X)], ncol = ncol(X))
-
-## Check Y columns are sorted and that they have same values in
-## corresponding X columns
-for( i in 1:ncol(Y) )
-{
-    stopifnot( !is.unsorted(Y[,i], na.rm = TRUE ) )
-    stopifnot( all (Y[,i] %in% X[,i]) )
-    stopifnot( all (X[,i] %in% Y[,i]) )
 }
 
 mean_cor <- function(X,
@@ -143,12 +113,6 @@ name_combinations <- function(df,
     ## Make sure it is a matrix
     return( matrix(combinations, ncol = n_comb ) )
 }
-## If you wanna see for yerself
-## df <- data.frame(x = numeric(1),
-##                  y = numeric(1),
-##                  z = numeric(1))
-## test_comb <- make_combinations(df, 2, 3)
-## print(test_comb)
 
 get_mus <- function(df)
 {
@@ -214,26 +178,6 @@ descale <- function( df, mu = NULL, sig = NULL )
     
     return(df)
 }
-## Tests for function descale
-## df <- data.frame(x = c(1,4,6,2,4,6,-1),
-##                  y = c(1,2,3,4,5,6,7),
-##                  z = c(0,1,0,1,0,1,0))
-## df1 <- scale( df )
-## df2 <- descale(df1)
-## stopifnot(all(
-##     abs(df2-df) < 1e-14
-## ))
-
-## df3 <- descale(df1,
-##                mu  = attr(df1, "scaled:center"),
-##                sig = attr(df1, "scaled:scale" )  
-##                )
-## stopifnot(all(
-##     abs(df3-df) < 1e-14
-## ))
-
-
-
 
 
 
@@ -327,17 +271,6 @@ serial2date <- function( serial_day )
     return(
         as.Date(serial_day - 719529, origin = "1970-01-01") 
     )
-
-## ## Tests, if u wanna use them
-## ex_date <- "2008-02-29"
-## print( ex_date )
-## ex_day <- date2serial( ex_date ) 
-## print( ex_day )
-## rec_date <- serial2date( ex_day )
-## print( rec_date )
-## rec_day <- date2serial( rec_date )
-## print( rec_day )
-
 
 
 

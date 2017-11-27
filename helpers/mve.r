@@ -124,7 +124,10 @@ mve <- function(df,
         
     ## Check: respects lib? Order of vars.
     df <- lag_every_variable(df, max_lag)
-                         
+    df <- respect_lib( df, lib, max_lag )
+
+
+    
     predictions <- 0
     
     ## Find prediction for every one of the best models
