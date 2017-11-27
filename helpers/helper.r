@@ -1,21 +1,88 @@
 #!/usr/bin/Rscript
 library( zoo )
 
-empty_file <- function( lib_sizes, filename ) {
+lag_every_variable <- function(df, max_lag )
+{
+    lagged_df <- df
     
-    dummy_df <- data.frame( lib_sizes = numeric(0),
-                           mean = numeric(0),
-                           bot  = numeric(0),
-                           med  = numeric(0),
-                           top  = numeric(0))
-    write.table(dummy_df,
-                file = filename,
-                sep = ",",
-                append = FALSE,
-                quote = FALSE,
-                col.names = TRUE,
-                row.names = FALSE)
+    if( max_lag < 1 )
+        stop( "Must set max_lag >= 1. For using an unlagged time-series take max_lag == 1." )
+    if( max_lag == 1 )
+        lags <- c()
+    else
+        lags <- 1:(max_lag-1)
     
+    ## Take every variable ...
+    for( var in names(df) )
+    {
+        ## ... make that variable a time series ...
+        ts <- zoo( df[ , var ] )
+
+        ## ... and create its lags.
+        for( k in lags )
+            lagged_df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
+                                                  lag( ts, -k )
+                                                  )
+    }
+
+    ## ## Create dataframe to hold the look-ahead time series
+    ## future_df <- data.frame( tmp = numeric(nrow(df)) )
+    ## future_df$tmp <- NULL
+    
+    ## ## Take every variable ...
+    ## for( var in names(df) )
+    ## {
+    ##     ts <- zoo( df[ , var ] )
+
+    ##     ## ... and and create a look-ahead time series.
+    ##     future_df[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
+    ## }
+    
+    ## ## Merge the dataframes so that the names are sorted as follows:
+    ## ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
+    ## ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
+    ## df <- data.frame( c(future_df,lagged_df) )
+
+    df <- lagged_df
+    ## print("These are the variables in the lagged data frame:")
+    ## print(names(df)) 
+    
+    return( df )
+}
+
+respect_lib <- function(df, lib, max_lag)
+{
+    n_vars <- ncol(df) / max_lag
+    for( n in 0:(n_vars-1) )
+        for( l in 1:(max_lag-1) )
+        {
+            col_ind <- n_vars + n*(max_lag-1) + l
+            row_ind <- lib[1] + 1:l - 1
+            df[row_ind, col_ind] <- NA
+        }
+    
+    return( df )
+        
+}
+
+## df <- data.frame(x = c(1,4,5,8,7,8,4,2,5,2,5,6 ),
+##                  y = c(5,7,3,9,3,2,5,1,0,8,5,6 ),
+##                  z = c(2,5,2,6,2,5,9,7,4,7,2,8 ))
+## max_lag <- 4
+## n_vars <- ncol(df)
+## lib <- c(6,8)
+
+## df <- lag_every_variable(df, max_lag)
+##print(df)
+## df <- respect_lib( df, lib, max_lag )
+##print(df)
+
+
+empty_file <- function( filename )
+{
+    fileConn <- file(filename)
+    writeLines("lib_sizes,mean,bot,med,top", fileConn)
+    close(fileConn)
 }
 
 colOrder <- function(X, decreasing = FALSE)
@@ -30,12 +97,12 @@ colOrder <- function(X, decreasing = FALSE)
 }
 
 ## Test for above procedure
-m <- 6
-n <- 9
-X <- matrix(sample(1:20, m*n, replace = TRUE ), nrow = m, ncol = n )
-X[ 4 ] <- NA 
-X[ 9 ] <- NA 
-Y <- matrix(X[colOrder(X)], ncol = ncol(X))
+## m <- 6
+## n <- 9
+## X <- matrix(sample(1:20, m*n, replace = TRUE ), nrow = m, ncol = n )
+## X[ 4 ] <- NA 
+## X[ 9 ] <- NA 
+## Y <- matrix(X[colOrder(X)], ncol = ncol(X))
 
 ## Check Y columns are sorted and that they have same values in
 ## corresponding X columns
@@ -55,26 +122,34 @@ mean_cor <- function(X,
     return( means )
 }
 
-make_combinations <- function(n_vars,
-                              n_lags,
+name_combinations <- function(df,
+                              max_lag,
                               E)
 {
     ## Only this many are OK: subtract the bad ones
-    n_comb <- choose( n_vars*n_lags, E )- choose(n_vars*(n_lags-1), E ) 
-  
+    n_comb <- choose( ncol(df)*max_lag, E ) - choose( ncol(df)*(max_lag-1), E ) 
+    
+    df <- lag_every_variable(df, max_lag)
+      
     ## We know the allowed combinations must have one unlagged
     ## variable. By the way function combn is structured, these will be
     ## the first n_comb (defined below).
-    combinations <- combn( n_vars*n_lags, E ) ## Get ALL cobminations.
+    combinations <- combn( names(df), E ) ## Get ALL cobminations.
 
     ## Throw away the rest, then shift by n_vars, so we ignore the
     ## pushed ahead time series.
-    combinations <- combinations[ ,1:n_comb ] + n_vars
-    
+    combinations <- combinations[ ,1:n_comb ] 
+
     ## Make sure it is a matrix
     return( matrix(combinations, ncol = n_comb ) )
 }
-        
+## If you wanna see for yerself
+## df <- data.frame(x = numeric(1),
+##                  y = numeric(1),
+##                  z = numeric(1))
+## test_comb <- make_combinations(df, 2, 3)
+## print(test_comb)
+
 get_mus <- function(df)
 {
     mus  <- colMeans(df, na.rm = TRUE)
@@ -92,57 +167,10 @@ get_sigs <- function(df)
 random_lib <- function(lib_range, lib_size )
 {
     lib_start <- sample(lib_range[1]:lib_range[2], 1)
-    lib       <- c(lib_start, lib_start + lib_size- 1 )
+    lib       <- c(lib_start, lib_start + lib_size- 1)
     return(lib)
 }
 
-lag_every_variable <- function(df, n_lags)
-{
-    lagged_df <- df
-
-    if( n_lags < 1 )
-        stop( "Must set n_lags >= 1. For using an unlagged time-series take n_lags == 1." )
-    if( n_lags == 1 )
-        lags <- c()
-    else
-        lags <- 1:(n_lags-1)
-    
-    ## Take every variable ...
-    for( var in names(df) )
-    {
-        ## ... make that variable a time series ...
-        ts <- zoo( df[ , var ] )
-
-        ## ... and create its lags.
-        for( k in lags )
-            lagged_df[ paste0(var, "_", k) ] <- c(rep( NA, k ),
-                                                  lag( ts, -k )
-                                                  )
-    }
-
-    ## Create dataframe to hold the look-ahead time series
-    future_df <- data.frame( tmp = numeric(nrow(df)) )
-    future_df$tmp <- NULL
-    
-    ## Take every variable ...
-    for( var in names(df) )
-    {
-        ts <- zoo( df[ , var ] )
-
-        ## ... and and create a look-ahead time series.
-        future_df[ paste0(var, "_p1") ] <- c( as.vector(lag(ts,1)) , NA )
-    }
-    
-    ## Merge the dataframes so that the names are sorted as follows:
-    ## look-ahead variables, non-lagged variables, first variable lags, second variable lags, etc.
-    ## E.g. x_p1, y_p1, z_p1, x, y, z, x_1, x_2, y_1, y_2, z_1, z_2
-    df <- data.frame( c(future_df,lagged_df) )
-
-    print("These are the variables in the lagged data frame:")
-    print(names(df)) 
-    
-    return( df )
-}
 ## ## Normalize data frame AND keep track of column means and standard
 ## ## deviations.
 ## normalize_df <- function(df)
@@ -186,31 +214,37 @@ descale <- function( df, mu = NULL, sig = NULL )
     
     return(df)
 }
-## Tests for function rescale
-df <- data.frame(x = c(1,4,6,2,4,6,-1),
-                 y = c(1,2,3,4,5,6,7),
-                 z = c(0,1,0,1,0,1,0))
-df1 <- scale( df )
-df2 <- descale(df1)
-stopifnot(all(
-    abs(df2-df) < 1e-14
-))
+## Tests for function descale
+## df <- data.frame(x = c(1,4,6,2,4,6,-1),
+##                  y = c(1,2,3,4,5,6,7),
+##                  z = c(0,1,0,1,0,1,0))
+## df1 <- scale( df )
+## df2 <- descale(df1)
+## stopifnot(all(
+##     abs(df2-df) < 1e-14
+## ))
 
-df3 <- descale(df1,
-               mu  = attr(df1, "scaled:center"),
-               sig = attr(df1, "scaled:scale" )  
-               )
-stopifnot(all(
-    abs(df3-df) < 1e-14
-))
+## df3 <- descale(df1,
+##                mu  = attr(df1, "scaled:center"),
+##                sig = attr(df1, "scaled:scale" )  
+##                )
+## stopifnot(all(
+##     abs(df3-df) < 1e-14
+## ))
 
-true_cor <- function(x, y, mu, sig ) {
 
-    x <- descale(x, mu = mu, sig = sig )
-    y <- descale(y, mu = mu, sig = sig )
 
-    return( cor(x, y, use = "pairwise.complete.obs" ) )
-}
+
+
+
+
+
+
+
+
+####################################
+## Chlorophyll-A code ##############
+####################################
 
 bloom_or_not_days <- function(df,
                               threshold,
@@ -246,7 +280,6 @@ bloom_or_not_days <- function(df,
     else
         return( no_bloom_days )
 }
-
 
 get_blooms <- function(df,
                        threshold,

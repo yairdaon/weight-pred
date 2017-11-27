@@ -9,142 +9,115 @@ source( "helpers/mve.r" )
 ##                   "field_highwire_adjunct_files/1/aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx")
 
 save_predictions <- function(filename = stop("File name must be provided!"),
-                             variables = NULL, 
+                             target_column = "y", 
                              E = 3, ## Embedding dimension of the system.
-                             n_lags = E, ## 0,-1, ..., -n_lags
-                             n_samp = 150, ## Number of random libraries, should be in the hundreds
-                             lib = c(501:2001),  ## Library set.
-                             pred = c(2501,3000), ## Prediciton set.
-                             lib_sizes = (1:12)*10,     ## Library changes in size and is also random
+                             max_lag = E, ## 0,-1, ..., -max_lag
+                             n_samp = 100, ## Number of random libraries, should be in the hundreds
+                             lib = c(501:2000),  ## Library set.
+                             pred = c(2500,2999), ## Prediciton set.
+                             lib_sizes = (1:25)*5,    ## Library changes in size and is also random
                              method = "mve",
                              num_neighbors = E+1 )
 {
-    ## Save the parameters so we know what parameters we were using
-    save(filename,
-         variables,
-         E,
-         n_lags,
-         n_samp,
-         lib,
-         pred,
-         lib_sizes,         
-         file = paste0("model/runs/", method, "_parameters.Rdata") )
+    print( paste0( "Method: ", method, ", target: ", target_column) )
     
     ## Load data 
     raw_df <- read.csv(filename,
                        header = TRUE,
                        sep = "," )
-
-    if( is.null( variables ) )
-        variables <- names( raw_df )
     
-    pred_func <- mve
-    if( method == "uwe" )
-        pred_func <- uwe
-    
-    ## Rescale the data frame and keep track of the normalizing
-    ## factors.
+    ## ## Rescale the data frame and keep track of the normalizing
+    ## ## factors.
     mus  <- get_mus(raw_df)
     sigs <- get_sigs(raw_df)
     df   <- data.frame(scale(raw_df))    
+
+    filename <- paste0("model/runs/", method, "_", target_column, "_", num_neighbors,".csv")                
+    empty_file( filename = filename )
     
-    ## Create lags for every variable and make y_p1
-    df <- lag_every_variable(df, n_lags)
-        
-    ## Create the list of combinations
-    combinations <- make_combinations(ncol(raw_df), ## TOTAL number of variables
-                                      n_lags,
-                                      E)
+    pred_func <- my_mve
+    if( method == "uwe" )
+        pred_func <- uwe
+    if( method == "hao" ) 
+        pred_func <- multiview
+
     ## Preallocate
     rhos <- numeric( n_samp )
-    
-    ## Do the analysis for every variable. 
-    for( curr_var in variables )
+        
+    for (lib_size in lib_sizes)
     {
-        filename <- paste0("model/runs/", method, "_", curr_var, "_", num_neighbors,".csv")                
-        empty_file(lib_sizes,
-                   filename = filename )
         
-        for (lib_size in lib_sizes)
+        ## For every random library starting point
+        for( smp in 1:n_samp )
         {
+            if( smp %% 5 == 0 )
+                print( paste0("Sample ", smp, "/", n_samp, ", lib size ", lib_size ) )
             
-            ## For every random library starting point
-            for( smp in 1:n_samp )
-            {
-                if( smp %% 5 == 0 )
-                    print( paste0("Var ", curr_var, ", sample ", smp, "/", n_samp, ", lib size ", lib_size ) )
-        
-                ## Choose random lib
-                rand_lib <- random_lib(lib, lib_size)
-        
-                ## Find the MVE prediction
-                prediction <- pred_func(df, ## lagged and scaled.
-                                        curr_var,
-                                        rand_lib, ## Library set.
-                                        pred, ## Prediciton set.
-                                        combinations,
-                                        num_neighbors)
-                
-                ## Move prediciton to original coordinates
-                rhos[smp] <- attr( prediction, "rho" )
-                
-            } ## Closes for( smp in 1:n_samp )
+            ## Find the MVE prediction
+            output <- pred_func(df,
+                                lib = random_lib(lib, lib_size),
+                                pred = pred,
+                                ## norm_type = c("L2 norm", "L1 norm", "P norm"),
+                                ## P = 0.5, 
+                                E = E,
+                                tau = 1,
+                                tp = 1,
+                                max_lag = max_lag,
+                                num_neighbors = num_neighbors,
+                                k = "sqrt",
+                                na.rm = FALSE, 
+                                target_column = target_column, 
+                                stats_only = TRUE,
+                                first_column_time = FALSE, 
+                                exclusion_radius = NULL,
+                                silent = FALSE)
+            rhos[smp] <- output$rho
             
-            vec <- matrix( c( lib_size, mean(rhos), quantile(rhos, probs = c(0.25,0.5,0.75)) ), nrow = 1)
-            write.table(vec,
-                        file = filename, 
-                        sep = ",",
-                        append = TRUE, 
-                        quote = FALSE,
-                        col.names = FALSE,
-                        row.names = FALSE)                    
+        } ## Closes for( smp in 1:n_samp )
+                
+        ## Order agrees with order set in empty_file
+        vec <- matrix( c( lib_size, mean(rhos), quantile(rhos, probs = c(0.25,0.5,0.75)) ), nrow = 1)
+        write.table(vec,
+                    file = filename, 
+                    sep = ",",
+                    append = TRUE, 
+                    quote = FALSE,
+                    col.names = FALSE,
+                    row.names = FALSE)                    
+        
+    } ## Closes for (lib_size in lib_sizes)
 
-        } ## Closes for (lib_size in lib_sizes)
-                
-    } ## closes for( curr_var in variables )
+    ## Save the parameters so we know what parameters we were using
+    ## save(filename,
+    ##      E,
+    ##      max_lag,
+    ##      n_samp,
+    ##      lib,
+    ##      pred,
+    ##      lib_sizes,         
+    ##      file = "model/runs/parameters.Rdata" )
     
-}
-
-
-
-## Clean shit up
-system("rm -f model/runs/*")
+} ## Closes function save_predictions
 
 args <- commandArgs( trailingOnly = TRUE )
-if( args == "test" )
+if( length(args) > 2 && args[3] == "test" )
 {
-    for( num_neighbors in 1:4 )
-    {
-        save_predictions(file = "model/originals/three_species.csv",
-                         variables = c( "y" ),
-                         E = 2, ## Embedding dimension of the system.
-                         n_lags = 2, ## 0, -1,..., -(n_lags-1)
-                         n_samp = 3, ## Number of random libraries, should be in the hundreds
-                         lib = c(501,2001),  ## Library set.
-                         pred = c(2501,3000), ## Prediciton set.
-                         lib_sizes = (2:4)*20,
-                         method = "uwe",
-                         num_neighbors = num_neighbors
-                         )
-        
-        save_predictions(file = "model/originals/three_species.csv",
-                         variables = c( "y" ),
-                         E = 2, ## Embedding dimension of the system.
-                         n_lags = 2, ## 0, -1,..., -(n_lags-1)
-                         n_samp = 3, ## Number of random libraries, should be in the hundreds
-                         lib = c(501,2001),  ## Library set.
-                         pred = c(2501,3000), ## Prediciton set.
-                         lib_sizes = (2:4)*20, ## Library sizes
-                         method = "mve",
-                         num_neighbors = num_neighbors
-                         )
-    }
+    print( "Testing..." )
+    n_samp <- 5
+    lib_sizes <- c(25,50)
+} else {
+    n_samp <- 100
+    lib_sizes <- (1:10)*10
 }
-else
-    save_predictions(file = "model/originals/three_species.csv",
-                     variables = c( "y" ),
-                     method = args[1],
-                     num_neighbors = as.numeric(args[2])
-                     )
-    
 
+
+
+
+save_predictions(file = "model/originals/three_species.csv",
+                 target_column = "y",
+                 n_samp = n_samp,
+                 method = args[1],
+                 num_neighbors = as.numeric(args[2]),
+                 lib_sizes = lib_sizes, 
+                 )
+    
