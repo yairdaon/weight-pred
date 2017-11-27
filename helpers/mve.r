@@ -125,8 +125,6 @@ mve <- function(df,
     ## Check: respects lib? Order of vars.
     df <- lag_every_variable(df, max_lag)
     df <- respect_lib( df, lib, max_lag )
-
-
     
     predictions <- 0
     
@@ -180,7 +178,8 @@ best_combinations_cv <- function(df,
     n_comb <- ncol(combinations)
    
     df <- lag_every_variable(df, max_lag)
-   
+    df <- respect_lib( df, lib, max_lag )
+    
     ## Preallocate memory.
     rhos <- numeric( n_comb )
     for( comb in 1:n_comb )

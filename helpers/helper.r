@@ -60,8 +60,7 @@ respect_lib <- function(df, lib, max_lag)
             df[row_ind, col_ind] <- NA
         }
     
-    return( df )
-        
+    return( df )        
 }
 
 
