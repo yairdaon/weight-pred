@@ -66,6 +66,7 @@ respect_lib <- function(df, lib, max_lag)
 
 empty_file <- function( filename )
 {
+    file.create(filename)
     fileConn <- file(filename)
     writeLines("lib_sizes,mean,bot,med,top", fileConn)
     close(fileConn)

@@ -35,7 +35,7 @@ save_predictions <- function(filename = stop("File name must be provided!"),
     filename <- paste0("model/runs/", method, "_", target_column, "_", num_neighbors,".csv")                
     empty_file( filename = filename )
     
-    pred_func <- my_mve
+    pred_func <- mve
     if( method == "uwe" )
         pred_func <- uwe
     if( method == "hao" ) 
