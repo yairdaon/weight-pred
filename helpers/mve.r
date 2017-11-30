@@ -3,7 +3,9 @@ library(rEDM)
 library(zoo)
 source( "helpers/helper.r" )
 
-## Get a uncertainty-weighted prediction
+## Get a uncertainty-weighted prediction Variable num_neighbors is
+## redundant, but we keep for consistency of method signature. Also
+## k is currently redundant.
 uwe <- function(df,
                 lib = c(1, floor(NROW(block)/2)), 
                 pred = c(floor(NROW(block)/2), NROW(block)),
@@ -13,7 +15,7 @@ uwe <- function(df,
                 tau = 1,
                 tp = 1,
                 max_lag = 3,
-                num_neighbors = E+1,
+                num_neighbors = E+1, 
                 k = "sqrt",
                 na.rm = FALSE,
                 target_column = 1, 
@@ -25,12 +27,16 @@ uwe <- function(df,
                 )
                 
 {
-    combinations <- make_combinations(ncol(df),
-                                      max_lag,
-                                      E)
-    
+    ## combinations <- best_combinations_cv(df,
+    ##                                      lib,
+    ##                                      target_column,
+    ##                                      max_lag,
+    ##                                      E)
+    combinations <- name_combinations(df,max_lag,E)
+        
     df <- lag_every_variable(df, max_lag)
-
+    df <- respect_lib( df, lib, max_lag )
+    
     ## Useful variables to have
     n_comb  <- ncol(combinations)
     pred_size <- pred[2] - pred[1]
@@ -47,7 +53,7 @@ uwe <- function(df,
                              method = "simplex",
                              tp = 1, 
                              columns = combinations[ , comb ], 
-                             num_neighbors = num_neighbors,
+                             num_neighbors = E+1, ## Do NOT use 1!!
                              target_column = target_column, 
                              first_column_time = FALSE,
                              stats_only = FALSE )
@@ -57,29 +63,35 @@ uwe <- function(df,
     } ## Closes for( comb in 1:n_comb )
     
     ## Get rid of those zero variance predictions.
-    var_table[ var_table == 0 ] <- NA
+    bad_var <- var_table == 0
+    var_table[ bad_var ] <- Inf
     
     ## Apply order to every column. Use increasing order, so lower
     ## uncertainties have lower indices.
     ord <- colOrder( var_table )
 
+    ## Now var_table and pred_table both have columns ordered
+    ## according to var_table.
+    var_table  <- matrix(var_table [ord], ncol = ncol(var_table))
+    pred_table <- matrix(pred_table[ord], ncol = ncol(var_table))
+
     ## Take best sqrt(k), according to the MVE heuristic
     best <- ceiling(sqrt(nrow(var_table)))
-    ind  <- ord[1:best, ]
 
+    ## Take only best predictors
+    var_table  <- var_table [1:best, ]
+    pred_table <- pred_table[1:best, ]
+    
     ## Exponential weights
-    w <- exp(-matrix(var_table [ind], nrow = best, ncol = ncol(var_table) ) )
-
-    ## Corresponding predictions
-    p <-      matrix(pred_table[ind], nrow = best, ncol = ncol(var_table) )
-
+    weight_table <- exp(-var_table )
+    
     ## Weighted sum
-    pred <- colSums(w*p) / colSums(w)
-    time <- output$model_output[[1]]$time
-    obs  <- output$model_output[[1]]$obs
+    predictions <- colSums(weight_table*pred_table) / colSums(weight_table)
+    time        <- output$model_output[[1]]$time
+    obs         <- output$model_output[[1]]$obs
 
     params <- data.frame(E = E, tau = tau, tp = tp, nn = num_neighbors) ##, k = k_list)
-    stats <- compute_stats(obs, pred)
+    stats <- compute_stats(obs, predictions)
 
     if( stats_only )
         return( cbind(params, stats) )
@@ -87,12 +99,11 @@ uwe <- function(df,
         return(list(params = params, 
                     model_output = data.frame(time = time, 
                                               obs = obs, 
-                                              pred = pred), 
+                                              pred = predictions), 
                     pred_stats = stats )
                )
     
 }
-
 
 mve <- function(df,
                 lib = c(1, floor(NROW(block)/2)), 
@@ -150,7 +161,7 @@ mve <- function(df,
     ## The predictions MVE makes
     predictions <- predictions / ncol(best)
     obs  <- output$model_output[[1]]$obs
-    time <- output$model_output[[1]]$time
+    time <- output$model_output[[1]]$time ## Not sure what this does...
     
     params <- data.frame(E = E, tau = tau, tp = tp, nn = num_neighbors) ##, k = k_list)
     stats <- compute_stats(obs, predictions)

@@ -48,7 +48,8 @@ n <- 9
 X <- matrix(sample(1:20, m*n, replace = TRUE ), nrow = m, ncol = n )
 X[ 4 ] <- NA 
 X[ 9 ] <- NA 
-Y <- matrix(X[colOrder(X)], ncol = ncol(X))
+ord <- colOrder(X)
+Y <- matrix(X[ord], ncol = ncol(X))
 
 ## Check Y columns are sorted and that they have same values in
 ## corresponding X columns
@@ -122,3 +123,4 @@ print( "Finished test lag_every_variable and respect_lib" )
 ## )
 ## lag_three <- make_block(df, max_lag = 2, t = NULL, lib = lib, tau = 3)
 ## stopifnot( comparator( lag_three, lag_three_test ) )
+

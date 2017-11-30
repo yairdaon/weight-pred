@@ -72,6 +72,7 @@ empty_file <- function( filename )
     close(fileConn)
 }
 
+## returns ord so that X(ord) columns are sorted columns of X
 colOrder <- function(X, decreasing = FALSE)
 {
     ## Get sorting indices for every column
