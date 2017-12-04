@@ -100,24 +100,38 @@ save_predictions <- function(filename = stop("File name must be provided!"),
 } ## Closes function save_predictions
 
 args <- commandArgs( trailingOnly = TRUE )
-if( length(args) > 2 )
+if( args[1] == "huisman" )
+    filename <-"huisman/originals/huisman.csv"
+else if( args[1] == "3sp" )
+    filename <- "hastings-powell/originals/three_species.csv"
+else
+    stop( "Unknown model" )
+
+if( args[2] == "mve" )
+    method <- "mve" 
+else if( args[2] == "uwe" )
+    method <- "uwe"
+else
+    stop( "Unknown method" )
+
+target_column <- args[3]
+
+if( args[length(args)] == "test" )
 {
-    if( args[3] == "test" )
-    {
-        print( "Testing..." )
-        n_samp <- 5
-        lib_sizes <- c(25,50)
-    } else {
-        n_samp <- 100
-        lib_sizes <- c(25)
-    }
+    print( "Testing..." )
+    n_samp <- 5
+    lib_sizes <- c(25)
+} else if( args[3] == "long" )
+{
+    n_samp <- 50
+    lib_sizes <- c(25,50)
 } else {
-    n_samp <- 100
+    n_samp <- 150
     lib_sizes <- (1:10)*10
 }
 
-save_predictions(file = "model/originals/three_species.csv",
-                 target_column = "x",
+save_predictions(file = filename,
+                 target_column = target_column,
                  n_samp = n_samp,
                  method = args[1],
                  num_neighbors = as.numeric(args[2]),

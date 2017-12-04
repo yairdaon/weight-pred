@@ -61,6 +61,7 @@ uwe <- function(df,
         var_table [ comb, ] <- output$model_output[[1]]$pred_var
         
     } ## Closes for( comb in 1:n_comb )
+
     
     ## Get rid of those zero variance predictions.
     bad_var <- var_table == 0
