@@ -8,8 +8,8 @@ set.seed( 19 )
 ## filename = paste0("http://science.sciencemag.org/highwire/filestream/683325/",
 ##                   "field_highwire_adjunct_files/1/aag0863_SupportingFile_Suppl._Excel_seq1_v2.xlsx")
 
-save_predictions <- function(filename = stop("File name must be provided!"),
-                             target_column = "y", 
+save_predictions <- function(dirname = stop("Directory name must be provided!"),
+                             target_column = 1, 
                              E = 3, ## Embedding dimension of the system.
                              max_lag = E, ## 0,-1, ..., -max_lag
                              n_samp = 100, ## Number of random libraries, should be in the hundreds
@@ -22,7 +22,7 @@ save_predictions <- function(filename = stop("File name must be provided!"),
     print( paste0( "Method: ", method, ", target: ", target_column) )
     
     ## Load data 
-    raw_df <- read.csv(filename,
+    raw_df <- read.csv(paste0( dirname, "/original.csv" ),
                        header = TRUE,
                        sep = "," )
     
@@ -33,8 +33,8 @@ save_predictions <- function(filename = stop("File name must be provided!"),
     df    <- data.frame(scale(raw_df))
     noise <- rnorm( prod(dim(df)), mean=0, sd=sqrt(0.1))  
     df    <- noise + df ## As long as first_column_time == FALSE
-
-    filename <- paste0("model/runs/", method, "_", target_column, "_", num_neighbors,".csv")                
+    
+    filename <- paste0(dirname, "/runs/", method, "_", target_column, "_", num_neighbors,".csv")                
     empty_file( filename = filename )
     
     pred_func <- mve
@@ -100,29 +100,31 @@ save_predictions <- function(filename = stop("File name must be provided!"),
 } ## Closes function save_predictions
 
 args <- commandArgs( trailingOnly = TRUE )
-if( args[1] == "huisman" )
-    filename <-"huisman/originals/huisman.csv"
-else if( args[1] == "3sp" )
-    filename <- "hastings-powell/originals/three_species.csv"
-else
-    stop( "Unknown model" )
 
-if( args[2] == "mve" )
+if( args[1] == "huisman" ) {
+    dirname <-"huisman"
+} else if( args[1] == "hp" ) {
+    dirname <- "hp"
+} else {
+    stop( "Unknown model" )
+}
+
+if( args[2] == "mve" ) {
     method <- "mve" 
-else if( args[2] == "uwe" )
+} else if( args[2] == "uwe" ) {
     method <- "uwe"
-else
+} else {
     stop( "Unknown method" )
+}
 
 target_column <- args[3]
-
-if( args[length(args)] == "test" )
-{
+num_neighbors <- as.numeric(args[4] )
+  
+if( args[length(args)] == "test" ) {
     print( "Testing..." )
     n_samp <- 5
     lib_sizes <- c(25)
-} else if( args[3] == "long" )
-{
+} else if( args[3] == "long" ) {
     n_samp <- 50
     lib_sizes <- c(25,50)
 } else {
@@ -130,11 +132,11 @@ if( args[length(args)] == "test" )
     lib_sizes <- (1:10)*10
 }
 
-save_predictions(file = filename,
+save_predictions(dirname = dirname,
                  target_column = target_column,
                  n_samp = n_samp,
-                 method = args[1],
-                 num_neighbors = as.numeric(args[2]),
+                 method = method,
+                 num_neighbors = num_neighbors,
                  lib_sizes = lib_sizes, 
                  )
     

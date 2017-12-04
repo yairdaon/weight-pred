@@ -19,6 +19,8 @@ tmp.r
 *.pdf
 Makefile
 *.out
+!hp/original.csv
+!huisman/original.csv
 
 paper/*
 !paper/paper.tex
