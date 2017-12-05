@@ -25,6 +25,13 @@ save_predictions <- function(dirname = stop("Directory name must be provided!"),
     raw_df <- read.csv(paste0( dirname, "/original.csv" ),
                        header = TRUE,
                        sep = "," )
+    raw_df$time <- NULL
+    ## raw_df <- raw_df[1:3000, 1:3 ]
+    
+    if( dirname == "huisman" )
+        rel_err <- 0.1
+    else
+        rel_err <- 0.01
     
     ## ## Rescale the data frame and keep track of the normalizing
     ## ## factors.
@@ -80,7 +87,7 @@ save_predictions <- function(dirname = stop("Directory name must be provided!"),
                 avg <- mean(rhos[1:smp])
                 err <- sd( rhos[1:smp] )/ sqrt( smp )
                 print( paste0("Sample ", smp, "/", n_samp, ", lib size ", lib_size, " mean ", avg, " +/- ", err ) )
-                if (err < 0.01*avg )
+                if (err < rel_err*avg )
                     break
             }
         } ## Closes for( smp in 1:n_samp )
@@ -103,8 +110,12 @@ args <- commandArgs( trailingOnly = TRUE )
 
 if( args[1] == "huisman" ) {
     dirname <-"huisman"
+    max_lag <- 3
+    E <- 5
 } else if( args[1] == "hp" ) {
     dirname <- "hp"
+    max_lag <- 3
+    E <- 3
 } else {
     stop( "Unknown model" )
 }
@@ -124,6 +135,8 @@ if( args[length(args)] == "test" ) {
     print( "Testing..." )
     n_samp <- 5
     lib_sizes <- c(25)
+    E <- 2
+    max_lag <- 2
 } else if( args[3] == "long" ) {
     n_samp <- 50
     lib_sizes <- c(25,50)
@@ -137,6 +150,8 @@ save_predictions(dirname = dirname,
                  n_samp = n_samp,
                  method = method,
                  num_neighbors = num_neighbors,
-                 lib_sizes = lib_sizes, 
+                 lib_sizes = lib_sizes,
+                 max_lag = max_lag,
+                 E = E
                  )
     

@@ -27,11 +27,17 @@ uwe <- function(df,
                 )
                 
 {
+
+    if( num_neighbors == 1 )
+        stop( "num_neighbors == 1, this means zero uncertainty by definition")
+    ## Can either choose best_combinations, as done in MVE...
     ## combinations <- best_combinations_cv(df,
     ##                                      lib,
     ##                                      target_column,
     ##                                      max_lag,
     ##                                      E)
+
+    ## Or use *all* combinations.
     combinations <- name_combinations(df,max_lag,E)
         
     df <- lag_every_variable(df, max_lag)
@@ -53,7 +59,7 @@ uwe <- function(df,
                              method = "simplex",
                              tp = 1, 
                              columns = combinations[ , comb ], 
-                             num_neighbors = E+1, ## Do NOT use 1!!
+                             num_neighbors = num_neighbors,
                              target_column = target_column, 
                              first_column_time = FALSE,
                              stats_only = FALSE )
@@ -63,7 +69,7 @@ uwe <- function(df,
     } ## Closes for( comb in 1:n_comb )
 
     
-    ## Get rid of those zero variance predictions.
+    ## ## Get rid of those zero variance predictions.
     bad_var <- var_table == 0
     var_table[ bad_var ] <- Inf
     
@@ -85,6 +91,7 @@ uwe <- function(df,
     
     ## Exponential weights
     weight_table <- exp(-var_table )
+    ## weight_table <- var_table
     
     ## Weighted sum
     predictions <- colSums(weight_table*pred_table) / colSums(weight_table)
